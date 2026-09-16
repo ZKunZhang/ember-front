@@ -8,7 +8,7 @@ import FieldManual from './components/FieldManual.jsx';
 export default function App() {
   const [screen,setScreen]=useState('library'),[hasBattle,setHasBattle]=useState(false),[help,setHelp]=useState(false);
   const {game,dispatch}=useGame(screen==='battle');
-  const deploy=id=>{dispatch({type:'RESET',scenarioId:id});setHasBattle(true);setScreen('battle');};
+  const deploy=(id,difficulty)=>{dispatch({type:'RESET',scenarioId:id,difficulty});setHasBattle(true);setScreen('battle');};
   const allies=game.units.filter(u=>u.team==='blue'),enemies=game.units.filter(u=>u.team==='red');
   return <>
     <header><button className="brand" onClick={()=>setScreen('library')} aria-label="返回战区选择"><span className="brand-mark">✣</span><span>烬土前线<small>EMBER FRONT / ARMORED OPERATIONS</small></span></button><div className="header-middle"><span className="live-dot"/> 联合作战指挥终端 <span className="divider">/</span> 第七装甲旅</div><div className="header-actions">{screen==='battle'&&<button className="icon-button" id="choose-map" onClick={()=>setScreen('library')}>▦ <span>战区选择</span></button>}<button className="icon-button" id="help" onClick={()=>setHelp(true)}>? <span>作战指南</span></button></div></header>

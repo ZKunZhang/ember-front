@@ -1,7 +1,7 @@
 import { createScenario } from '../game/scenarios.js';
 const colors={'0':'#60764e','1':'#909178','2':'#385a39','3':'#b9a475','4':'#437477'};
-export default function ScenarioPreview({id}) {
-  const s=createScenario(id),p=(x,y)=>[250+(y-x)*11,18+(x+y)*5.5];
+export default function ScenarioPreview({id,difficulty}) {
+  const s=createScenario(id,difficulty),p=(x,y)=>[250+(y-x)*11,18+(x+y)*5.5];
   return <svg className="scenario-preview" viewBox="0 0 450 225" aria-label={`${s.name}地形与部署预览`}>
     <defs><radialGradient id={`glow-${id}`}><stop stopColor="#475938" stopOpacity=".5"/><stop offset="1" stopColor="#19241c" stopOpacity="0"/></radialGradient></defs>
     <ellipse cx="230" cy="132" rx="220" ry="110" fill={`url(#glow-${id})`}/>

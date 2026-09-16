@@ -4,17 +4,17 @@ import { initialGame, gameReducer } from '../src/game/reducer.js';
 import { createView, project, unproject } from '../src/rendering/projection.js';
 import { reachable } from '../src/game/engine.js';
 
-test('moving the last vehicle preserves the opportunity to choose attack targets',()=>{
+test('moving the last vehicle ends the turn without requiring or automatically firing',()=>{
   const s=initialGame();
   for(const u of s.units.filter(u=>u.team==='blue'))u.moved=true;
   s.units[0].moved=false;
   const destination=reachable(s,s.units[0]).values().next().value.at(-1);
   const next=gameReducer(s,{type:'CELL',...destination});
-  assert.equal(next.turn,'blue');assert.equal(next.mode,'attack');
-  assert.equal(next.units[0].fired,false);
+  assert.equal(next.turn,'red');assert.equal(next.selectedId,null);
+  assert.ok(next.units.filter(u=>u.team==='blue').every(u=>!u.fired));
 });
 
-test('last movement ends the turn only after all living vehicles have acted',()=>{
+test('last movement ignores destroyed vehicles and starts exactly one enemy turn',()=>{
   const s=initialGame();
   for(const u of s.units.filter(u=>u.team==='blue')){u.moved=true;u.fired=true;}
   s.units[0].moved=false;
@@ -53,7 +53,7 @@ for(const moved of [false,true])test(`manual repair exits repair mode and allows
   const repairing=gameReducer(s,{type:'MODE',mode:'repair'});
   const next=gameReducer(repairing,{type:'CELL',x:target.x,y:target.y});
   assert.equal(next.units[2].hp,target.maxHp);assert.equal(next.units[5].fired,true);
-  assert.equal(next.mode,moved?'attack':'move');
+  assert.equal(next.mode,'move');
   assert.equal(next.turn,'blue');assert.equal(s.units[2].hp,target.maxHp-5);
   assert.equal(gameReducer(next,{type:'CELL',x:target.x,y:target.y}).selectedId,target.id);
   assert.equal(gameReducer(next,{type:'MODE',mode:'repair'}),next);
@@ -67,7 +67,7 @@ test('last repair ends the turn; invalid repair does not and can be cancelled',(
   const failed=gameReducer(repairing,{type:'CELL',x:target.x,y:target.y});
   assert.equal(failed.turn,'blue');assert.equal(failed.units[5].fired,false);
   const cancelled=gameReducer(failed,{type:'CANCEL_REPAIR'});
-  assert.equal(cancelled.mode,'attack');assert.equal(cancelled.units[5].fired,false);
+  assert.equal(cancelled.mode,'move');assert.equal(cancelled.units[5].fired,false);
   repairing.units[2].hp-=5;
   const repaired=gameReducer(repairing,{type:'CELL',x:target.x,y:target.y});
   assert.equal(repaired.turn,'red');assert.equal(repaired.units[2].hp,target.maxHp);
@@ -87,7 +87,7 @@ test('non-engineers and locked turns reject repair mode',()=>{
 
 test('switching maps invalidates pending enemy steps without mutating old state',()=>{
   const a=initialGame('mountain-pass'),b=gameReducer(a,{type:'END_TURN'}),c=gameReducer(b,{type:'RESET',scenarioId:'twin-bridges'});
-  assert.equal(a.turn,'blue');assert.equal(b.turn,'red');assert.equal(c.units.length,27);assert.equal(c.turnNumber,1);
+  assert.equal(a.turn,'blue');assert.equal(b.turn,'red');assert.equal(c.units.length,18);assert.equal(c.turnNumber,1);
   assert.equal(gameReducer(c,{type:'ENEMY_STEP',session:b.session}),c);
   const d=gameReducer(c,{type:'RESET'});assert.equal(gameReducer(d,{type:'ENEMY_STEP',session:c.session}),d);
 });
@@ -108,19 +108,19 @@ test('transient zero-size layout never produces negative canvas radii',()=>{
 });
 
 
-for(const mode of ['move','repair'])test(`visible enemy inspection preserves actions and allied selection in ${mode} mode`,()=>{
+for(const mode of ['move','repair'])test(`out-of-range enemy click shows intel without consuming actions in ${mode} mode`,()=>{
   const s=initialGame(),red=s.units.find(u=>u.team==='red');
   s.fog[red.y][red.x]=false;s.mode=mode;
   const next=gameReducer(s,{type:'CELL',x:red.x,y:red.y});
   assert.equal(next.inspectedId,red.id);assert.equal(next.selectedId,s.selectedId);
-  assert.deepEqual(next.units,s.units);assert.equal(next.mode,mode);assert.deepEqual(next.logs,s.logs);
+  assert.deepEqual(next.units,s.units);assert.equal(next.mode,mode);assert.equal(next.logs[0].kind,'warn');
   const selected=gameReducer(next,{type:'SELECT',id:2});
   assert.equal(selected.inspectedId,null);assert.equal(selected.selectedId,2);
 });
 
-test('attack mode inspects the chosen enemy and still attacks it',()=>{
+for(const mode of ['move','repair'])test(`clicking enemies directly fires and inspects in ${mode} mode`,()=>{
   const s=initialGame(),red=s.units.find(u=>u.team==='red');
-  red.x=16;red.y=3;s.fog[3][16]=false;s.mode='attack';
+  red.x=16;red.y=3;s.fog[3][16]=false;s.mode=mode;
   const next=gameReducer(s,{type:'CELL',x:16,y:3});
   assert.equal(next.inspectedId,red.id);assert.equal(next.units[0].fired,true);
   assert.ok(next.units.find(u=>u.id===red.id).hp<red.hp);
@@ -146,4 +146,29 @@ test('enemy intel is cleared on death or loss of visibility',()=>{
   red.x=16;red.y=3;red.hp=1;s.fog[3][16]=false;s.mode='attack';
   const next=gameReducer(s,{type:'CELL',x:16,y:3});
   assert.equal(next.inspectedId,null);
+});
+
+test('difficulty survives redeployment and can be changed explicitly',()=>{
+  const simple=initialGame();
+  assert.equal(simple.difficultyId,'simple');assert.equal(simple.enemyCount,7);
+  const hard=gameReducer(simple,{type:'RESET',difficulty:'hard'});
+  assert.equal(hard.difficultyId,'hard');assert.equal(hard.enemyCount,14);
+  const reset=gameReducer(hard,{type:'RESET'});
+  assert.equal(reset.difficultyId,'hard');assert.equal(reset.enemyCount,14);
+  const easy=gameReducer(reset,{type:'RESET',scenarioId:'twin-bridges',difficulty:'easy'});
+  assert.equal(easy.difficultyId,'easy');assert.equal(easy.enemyCount,14);
+});
+
+
+test('remaining movement and failed moves do not automatically end the turn',()=>{
+  const s=initialGame();
+  for(const u of s.units.filter(u=>u.team==='blue'))u.moved=true;
+  s.units[0].moved=false;s.units[1].moved=false;
+  const destination=reachable(s,s.units[0]).values().next().value.at(-1);
+  const moved=gameReducer(s,{type:'CELL',...destination});
+  assert.equal(moved.turn,'blue');assert.equal(moved.units[0].moved,true);
+  const other=reachable(moved,moved.units[0]).values().next().value.at(-1);
+  const failed=gameReducer(moved,{type:'CELL',...other});
+  assert.equal(failed.turn,'blue');assert.equal(failed.logs[0].kind,'warn');
+  assert.equal(gameReducer(failed,{type:'END_TURN'}).turn,'red');
 });

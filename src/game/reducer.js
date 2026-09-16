@@ -17,14 +17,14 @@ function finishPlayerTurn(s) {
   s.enemyQueue=s.units.filter(u=>u.team==='red'&&u.hp>0).map(u=>u.id);
   addLog(s,'敌方行动开始，保持警戒。','warn');
 }
-export function initialGame(id,session=1) {
-  const s={...createState(id),session,mode:'move',inspectedId:null,logs:[],logSequence:0,effectSequence:0,effect:null,enemyIndex:0,enemyQueue:[]};
+export function initialGame(id,session=1,difficulty='simple') {
+  const s={...createState(id,difficulty),session,mode:'move',inspectedId:null,logs:[],logSequence:0,effectSequence:0,effect:null,enemyIndex:0,enemyQueue:[]};
   addLog(s,`${s.name}：9 支车辆编队完成部署。`,'good');
   addLog(s,'侦察车开路，工程车随队，火炮利用共享视野。');
   return s;
 }
 export function gameReducer(current,action) {
-  if (action.type==='RESET') return initialGame(action.scenarioId??current.id,current.session+1);
+  if (action.type==='RESET') return initialGame(action.scenarioId??current.id,current.session+1,action.difficulty??current.difficultyId);
   if (action.type==='ENEMY_STEP'&&action.session!==current.session) return current;
   const s=structuredClone(current);
   const selected=()=>s.units.find(u=>u.id===s.selectedId&&u.hp>0);
@@ -32,7 +32,7 @@ export function gameReducer(current,action) {
     if (s.turn!=='blue'||s.winner) return current;
     const u=s.units.find(u=>u.id===action.id&&u.hp>0&&u.team==='blue');
     if (!u) return current;
-    s.selectedId=u.id;s.inspectedId=null;s.mode=u.moved?'attack':'move';
+    s.selectedId=u.id;s.inspectedId=null;s.mode='move';
   } else if (action.type==='MODE') {
     if (s.turn!=='blue'||s.winner) return current;
     const u=selected();
@@ -42,30 +42,30 @@ export function gameReducer(current,action) {
     s.mode=action.mode;
   } else if (action.type==='CANCEL_REPAIR') {
     if (s.turn!=='blue'||s.winner||s.mode!=='repair') return current;
-    s.mode=selected()?.moved?'attack':'move';
+    s.mode='move';
   } else if (action.type==='CELL') {
     if (!onMap(s,action.x,action.y)) return current;
     const target=unitAt(s,action.x,action.y),u=selected();
     if (target?.team==='red'&&!s.fog[target.y][target.x]) {
       s.inspectedId=target.id;
-      if (s.turn!=='blue'||s.winner||s.mode!=='attack'||!u||u.fired) return s;
+      if (s.turn!=='blue'||s.winner||!u||u.fired) return s;
     }
     if (s.turn!=='blue'||s.winner) return current;
     if (target?.team==='blue'&&s.mode!=='repair') {
-      s.selectedId=target.id;s.inspectedId=null;s.mode=target.moved?'attack':'move';return s;
+      s.selectedId=target.id;s.inspectedId=null;s.mode='move';return s;
     }
     if (!u) { addLog(s,'请先选择一个我方单位。'); return s; }
     let result;
-    if (s.mode==='repair') result=repairUnit(s,u.id,target?.id);
-    else if (s.mode==='attack'&&target?.team==='red'&&!s.fog[target.y][target.x]) result=attackUnit(s,u.id,target.id);
+    if (target?.team==='red'&&!s.fog[target.y][target.x]) result=attackUnit(s,u.id,target.id);
+    else if (s.mode==='repair') result=repairUnit(s,u.id,target?.id);
     else if (s.mode==='move') result=moveUnit(s,u.id,action.x,action.y);
     else result={ok:false,message:'请选择射程内可见的敌军；山林可能阻挡直射火力。'};
     addLog(s,result.message,result.ok?'good':'warn');
     if (result.damage||result.healed) effect(s,result);
-    if (result.ok&&s.mode==='repair') s.mode=u.moved?'attack':'move';
-    if (result.ok&&result.path) s.mode=u.fired?'move':'attack';
-    if (result.ok&&!s.winner&&s.units.filter(u=>u.team==='blue'&&u.hp>0).every(u=>u.moved&&u.fired)) {
-      addLog(s,'所有存活车辆已完成移动和行动，自动结束回合。');
+    if (result.ok&&s.mode==='repair') s.mode='move';
+    if (result.ok&&result.path) s.mode='move';
+    if (result.ok&&!s.winner&&s.units.filter(u=>u.team==='blue'&&u.hp>0).every(u=>u.moved)) {
+      addLog(s,'所有存活车辆已移动，自动结束回合。');
       finishPlayerTurn(s);
     }
   } else if (action.type==='END_TURN') {

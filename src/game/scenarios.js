@@ -1,4 +1,5 @@
 import { BLUE_FORMATION } from './catalog.js';
+import { DEFAULT_DIFFICULTY, enemyCountFor, getDifficulty } from './difficulty.js';
 
 export const SCENARIOS = [
   { id: 'mountain-pass', name: '断脊山隘', subtitle: 'BROKEN RIDGE', direction: '左下 → 右下', difficulty: '标准', enemyCount: 14,
@@ -14,8 +15,10 @@ const RED_NORTH = [[2,5],[3,5],[4,5],[2,6],[3,6],[4,6],[2,7],[3,7],[4,7],[5,5],[
 const TYPES = BLUE_FORMATION;
 const RED_TYPES = [...TYPES, 'tank','heavyTank','artillery','rocket','scout','engineer','tank','artillery','heavyTank'];
 
-export function createScenario(id = SCENARIOS[0].id) {
+export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFFICULTY) {
   const meta = SCENARIOS.find(s => s.id === id) || SCENARIOS[0];
+  const difficulty = getDifficulty(difficultyId);
+  const enemyCount = enemyCountFor(meta.enemyCount, difficulty.id);
   const cols = 22, rows = 18;
   const terrain = Array.from({ length: rows }, (_, y) => Array.from({ length: cols }, (_, x) =>
     x < 1 || y < 1 || x > 20 || y > 16 || x + y < 5 || x + y > 33 ? -1 : 0));
@@ -43,9 +46,9 @@ export function createScenario(id = SCENARIOS[0].id) {
   [[7,7],[6,10],[14,7],[15,7],[8,13],[14,13],[16,14],[3,10],[16,2]].forEach(([x,y]) => {
     if (terrain[y]?.[x] === 0) put(x, y, 2);
   });
-  const red = (meta.id === 'diagonal-valley' ? RED_NORTH : RED_SOUTH).slice(0, meta.enemyCount);
+  const red = (meta.id === 'diagonal-valley' ? RED_NORTH : RED_SOUTH).slice(0, enemyCount);
   const deployments = [...BLUE.map(([x,y],i)=>({team:'blue',type:TYPES[i],x,y})),
     ...red.map(([x,y],i)=>({team:'red',type:RED_TYPES[i],x,y}))];
   for (const {x,y} of deployments) put(x,y,0);
-  return { ...meta, cols, rows, terrain, deployments, landmarks };
+  return { ...meta, difficultyId: difficulty.id, difficulty: difficulty.label, enemyCount, cols, rows, terrain, deployments, landmarks };
 }

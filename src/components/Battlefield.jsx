@@ -5,7 +5,7 @@ import { onMap, reachable } from '../game/engine.js';
 
 export default function Battlefield({game,onCell,onReset}) {
   const canvasRef=useRef(null),drag=useRef(null),effectRef=useRef(null),previousEffect=useRef(null);
-  const [size,setSize]=useState({width:800,height:620}),[camera,setCamera]=useState({zoom:1,pan:{x:0,y:0}}),[hover,setHover]=useState(null);
+  const [size,setSize]=useState({width:800,height:620}),[camera,setCamera]=useState({zoom:1,pan:{x:0,y:0}}),[hover,setHover]=useState(null),[dragging,setDragging]=useState(false);
   const view=createView(game,size.width,size.height,camera.zoom,camera.pan);
   useLayoutEffect(()=>{
     const canvas=canvasRef.current;
@@ -36,19 +36,26 @@ export default function Battlefield({game,onCell,onReset}) {
     if(hit)onCell(hit.x,hit.y);else if(p)onCell(p.x,p.y);
   };
   const zoom=delta=>setCamera(c=>({...c,zoom:Math.max(.65,Math.min(2.8,c.zoom+delta))}));
-  useEffect(()=>{const el=canvasRef.current;const wheel=e=>{e.preventDefault();zoom(e.deltaY<0?.1:-.1);};el.addEventListener('wheel',wheel,{passive:false});return()=>el.removeEventListener('wheel',wheel);},[]);
+  const pan=dx=>{setHover(null);setCamera(c=>({...c,pan:{x:c.pan.x+dx,y:c.pan.y}}));};
+  useEffect(()=>{const el=canvasRef.current;const wheel=e=>{
+    e.preventDefault();
+    if(!e.ctrlKey&&(e.shiftKey||Math.abs(e.deltaX)>Math.abs(e.deltaY))){
+      const delta=(e.deltaX||e.deltaY)*(e.deltaMode===1?16:e.deltaMode===2?el.clientWidth:1);
+      pan(-delta);
+    } else if(e.deltaY)zoom(e.deltaY<0?.1:-.1);
+  };el.addEventListener('wheel',wheel,{passive:false});return()=>el.removeEventListener('wheel',wheel);},[]);
   return <section className="battlefield">
     <div className="map-top"><span><i className="live-dot"/> 战术视图 <small>/ ISOMETRIC 45°</small></span><span className="coordinates">{hover?`GRID ${hover.x+1} : ${hover.y+1}`:'22 × 18 · 不规则战区'}</span></div>
-    <div className="canvas-wrap"><canvas ref={canvasRef} id="map" aria-label="等距战场，点击车辆选择，点击高亮地格移动" onPointerDown={e=>{drag.current={x:e.clientX,y:e.clientY,pan:camera.pan,moved:false};e.currentTarget.setPointerCapture(e.pointerId);}}
-      onPointerMove={e=>{const d=drag.current;if(d){const dx=e.clientX-d.x,dy=e.clientY-d.y;if(Math.hypot(dx,dy)>5)d.moved=true;if(d.moved){setCamera(c=>({...c,pan:{x:d.pan.x+dx,y:d.pan.y+dy}}));return;}}setHover(cell(e));}}
-      onPointerUp={e=>{if(drag.current&&!drag.current.moved)click(e);drag.current=null;}}
-      onPointerCancel={()=>drag.current=null} onPointerLeave={()=>setHover(null)}/>
+    <div className="canvas-wrap"><canvas ref={canvasRef} id="map" style={{cursor:dragging?'grabbing':'grab'}} aria-label="等距战场，可左右滑动或拖动平移；点击车辆选择，点击高亮地格移动" onPointerDown={e=>{if(!e.isPrimary||e.button!==0)return;drag.current={id:e.pointerId,x:e.clientX,y:e.clientY,pan:camera.pan,moved:false};e.currentTarget.setPointerCapture(e.pointerId);}}
+      onPointerMove={e=>{const d=drag.current;if(d){if(d.id!==e.pointerId)return;const dx=e.clientX-d.x,dy=e.clientY-d.y;if(Math.hypot(dx,dy)>5)d.moved=true;if(d.moved){setDragging(true);setHover(null);setCamera(c=>({...c,pan:{x:d.pan.x+dx,y:d.pan.y+dy}}));return;}}setHover(cell(e));}}
+      onPointerUp={e=>{if(drag.current?.id!==e.pointerId)return;if(!drag.current.moved)click(e);drag.current=null;setDragging(false);if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}}
+      onPointerCancel={()=>{drag.current=null;setDragging(false);}} onLostPointerCapture={()=>{drag.current=null;setDragging(false);}} onPointerLeave={()=>setHover(null)}/>
       <div className="map-caption"><span className="crosshair">⌖</span><div>{game.name}<small>{game.direction} · {game.landmarks.map(l=>l.label).join(' / ')}</small></div></div>
       <div className="north">N<span>↗</span></div>
-      <div className="map-controls"><button onClick={()=>zoom(-.2)} title="缩小">−</button><button onClick={()=>setCamera({zoom:1,pan:{x:0,y:0}})} title="重置视图">⌖</button><button onClick={()=>zoom(.2)} title="放大">＋</button></div>
-      <div className="map-command-hint">{game.turn==='red'?'敌方行动中…':game.mode==='repair'?'维修模式 · 点击相邻受损友军，或点「取消维修」退出':game.mode==='attack'?'火力模式 · 点击可见敌军攻击并查看情报':'移动模式 · 点击绿色地格；点击敌军查看情报'}</div>
+      <div className="map-controls"><button onClick={()=>pan(-120)} title="向左平移" aria-label="向左平移">←</button><button onClick={()=>zoom(-.2)} title="缩小">−</button><button onClick={()=>setCamera({zoom:1,pan:{x:0,y:0}})} title="重置视图">⌖</button><button onClick={()=>zoom(.2)} title="放大">＋</button><button onClick={()=>pan(120)} title="向右平移" aria-label="向右平移">→</button></div>
+      <div className="map-command-hint">{game.turn==='red'?'敌方行动中…':game.mode==='repair'?'维修模式 · 点击相邻受损友军；点击敌军开火':'点击蓝格移动 · 点击敌军开火并查看情报'}</div>
       {game.winner&&<div className="result"><span>OPERATION COMPLETE</span><h2>{game.winner==='blue'?'战区已肃清':'行动失败'}</h2><p>{game.winner==='blue'?`第 ${game.turnNumber} 回合 · 敌军全部歼灭`:'我方车辆全部损失，请调整部署战术。'}</p><button onClick={onReset}>重新部署</button></div>}
     </div>
-    <div className="map-bottom"><div className="legend"><span><i className="swatch blue"/>我方</span><span><i className="swatch red"/>敌方</span><span><i className="swatch move"/>可移动</span><span><i className="swatch road"/>道路 / 桥梁</span><span><i className="swatch fog"/>迷雾</span></div><span className="map-tip">滚轮缩放 · 拖动平移</span></div>
+    <div className="map-bottom"><div className="legend"><span><i className="swatch blue"/>我方</span><span><i className="swatch red"/>敌方</span><span><i className="swatch move"/>移动范围</span><span><i className="swatch attack"/>火力范围</span><span><i className="swatch road"/>道路 / 桥梁</span><span><i className="swatch fog"/>迷雾</span></div><span className="map-tip">左右滑动 / 拖动平移 · 滚轮缩放</span></div>
   </section>;
 }

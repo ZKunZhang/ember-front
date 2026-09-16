@@ -17,7 +17,7 @@ function terrainRoute(s,from,to) {
 
 test('six ground vehicle types and all scenario forces have legal unique deployments',()=>{
   assert.deepEqual(Object.keys(UNIT_TYPES),['scout','tank','heavyTank','artillery','rocket','engineer']);
-  for(const meta of SCENARIOS){const s=createState(meta.id),blue=s.units.filter(u=>u.team==='blue'),red=s.units.filter(u=>u.team==='red');
+  for(const meta of SCENARIOS){const s=createState(meta.id,'hard'),blue=s.units.filter(u=>u.team==='blue'),red=s.units.filter(u=>u.team==='red');
     assert.equal(blue.length,9);assert.equal(red.length,meta.enemyCount);assert.equal(new Set(blue.map(u=>u.type)).size,6);
     assert.equal(new Set(s.units.map(u=>`${u.x},${u.y}`)).size,s.units.length);
     assert.ok(s.units.every(u=>passable(s,u.x,u.y)));assert.ok(s.terrain.flat().includes(-1));

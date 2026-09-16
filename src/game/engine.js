@@ -1,5 +1,6 @@
 import { UNIT_TYPES } from './catalog.js';
 import { createScenario } from './scenarios.js';
+import { DEFAULT_DIFFICULTY, applyEnemyDifficulty } from './difficulty.js';
 
 export const distance = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 export const keyOf = (x, y) => `${x},${y}`;
@@ -8,10 +9,12 @@ export const onMap = (s, x, y) => Number.isInteger(x) && Number.isInteger(y) && 
 export const passable = (s, x, y) => onMap(s, x, y) && [0,3].includes(s.terrain[y][x]);
 export const unitAt = (s, x, y) => s.units.find(u => u.hp > 0 && u.x === x && u.y === y);
 
-export function createState(scenarioId) {
-  const scenario = createScenario(scenarioId);
+export function createState(scenarioId, difficultyId = DEFAULT_DIFFICULTY) {
+  const scenario = createScenario(scenarioId, difficultyId);
   const units = scenario.deployments.map((deployment, i) => {
-    const spec = UNIT_TYPES[deployment.type];
+    const spec = deployment.team === 'red'
+      ? applyEnemyDifficulty(UNIT_TYPES[deployment.type], scenario.difficultyId)
+      : UNIT_TYPES[deployment.type];
     return { ...spec, ...deployment, id: i + 1, hp: spec.maxHp, moved: false, fired: false };
   });
   const s = { ...scenario, units, fog: [], selectedId: 1, turn: 'blue', turnNumber: 1, winner: null };

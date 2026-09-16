@@ -1,0 +1,485 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2487.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px Courier; -webkit-text-stroke: #000000}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px Courier; -webkit-text-stroke: #000000; min-height: 16.0px}
+    span.s1 {font-kerning: none}
+  </style>
+</head>
+<body>
+<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
+<p class="p1"><span class="s1">&lt;html lang="zh-CN"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;meta charset="UTF-8" /&gt;</span></p>
+<p class="p1"><span class="s1">&lt;title&gt;火炮战棋原型｜迷雾敌人暗攻&lt;/title&gt;</span></p>
+<p class="p1"><span class="s1">&lt;style&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>* { box-sizing: border-box; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>body {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>min-height: 100vh;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: #1b1f24;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color: #e8ecf1;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-family: "Segoe UI", "Microsoft YaHei", sans-serif;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display: flex;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>justify-content: center;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>align-items: center;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>user-select: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.wrap {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display: flex;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>gap: 20px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 20px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: #242a33;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 12px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>box-shadow: 0 10px 40px rgba(0,0,0,.35);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.panel {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>width: 260px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: #2c3440;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 14px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display: flex;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>flex-direction: column;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>gap: 12px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>h1 {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>margin: 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size: 16px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color: #76c7ff;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>letter-spacing: 1px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.info {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size: 13px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>line-height: 1.6;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color: #c9d2df;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: #353d4a;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 8px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.info b { color: #ffd166; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>button {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: #3e8ef7;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color: #fff;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border: none;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 8px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>cursor: pointer;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size: 14px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-weight: 600;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>letter-spacing: 1px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>button:hover { background: #5aa0ff; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>button:disabled { background: #555d6a; cursor: not-allowed; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>#log {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>font-size: 12px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: #1a1f27;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>padding: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 8px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>height: 220px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>overflow-y: auto;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>color: #aab6c4;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>line-height: 1.5;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>#map {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>background: #0f1419;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>border-radius: 10px;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>cursor: pointer;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>display: block;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.warn { color:#ff9966; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.selected { color: #76ff9a; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>.red { color: #ff6b6b; }</span></p>
+<p class="p1"><span class="s1">&lt;/style&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;body&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;div class="wrap"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;canvas id="map" width="640" height="480"&gt;&lt;/canvas&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div class="panel"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;h1&gt;火炮战棋｜迷雾暗击机制&lt;/h1&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="info"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div&gt;&lt;b&gt;目标：&lt;/b&gt;全歼红色敌方单位&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div&gt;&lt;b&gt;规则重点：&lt;/b&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div&gt;✅我方移动揭开迷雾，只能看见视野内敌人&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div&gt;✅敌方可以在迷雾内攻击你，只掉血，看不见敌人&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div&gt;&lt;b&gt;操作：&lt;/b&gt;选中单位→移动，移动完可直接攻击&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div&gt;&lt;b&gt;单位：&lt;/b&gt;火炮、防空车&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div&gt;&lt;b&gt;地形：&lt;/b&gt;山地、丛林不可通行&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;button id="endTurn"&gt;结束回合&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;button id="reset"&gt;重新开始&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div id="log"&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;script&gt;</span></p>
+<p class="p1"><span class="s1">const canvas = document.getElementById('map');</span></p>
+<p class="p1"><span class="s1">const ctx = canvas.getContext('2d');</span></p>
+<p class="p1"><span class="s1">const logEl = document.getElementById('log');</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">const COLS = 16;</span></p>
+<p class="p1"><span class="s1">const ROWS = 12;</span></p>
+<p class="p1"><span class="s1">const CELL = 40;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">let state = null;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function log(msg, cls = '') {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const d = document.createElement('div');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (cls) d.className = cls;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>d.innerHTML = msg;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>logEl.appendChild(d);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>logEl.scrollTop = logEl.scrollHeight;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function createInitialState() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const terrain = [];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>for (let y = 0; y &lt; ROWS; y++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>terrain[y] = [];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (let x = 0; x &lt; COLS; x++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>terrain[y][x] = 0; //0平地 1山 2丛林</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// 阻挡地形</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const obstacles = [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>[4,3],[5,3],[4,4],[11,2],[12,2],[11,3],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>[3,8],[4,8],[4,9],[10,8],[11,8],[12,9],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>[7,5],[8,5],[8,6],[7,7]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>obstacles.forEach(([x,y]) =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>terrain[y][x] = Math.random() &lt; 0.5 ? 1 : 2;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>return {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>terrain,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>fog: Array.from({length: ROWS}, () =&gt; Array(COLS).fill(true)),</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>units: [</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{ id:1, team:'blue', type:'artillery', x:1, y:2, hp:10, maxHp:10, move:3, range:4, attack:4, moved:false, fired:false },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{ id:2, team:'blue', type:'antiair',<span class="Apple-converted-space">  </span>x:1, y:5, hp:8,<span class="Apple-converted-space">  </span>maxHp:8,<span class="Apple-converted-space">  </span>move:4, range:3, attack:3, moved:false, fired:false },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{ id:3, team:'blue', type:'artillery', x:2, y:4, hp:10, maxHp:10, move:3, range:4, attack:4, moved:false, fired:false },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{ id:4, team:'blue', type:'antiair',<span class="Apple-converted-space">  </span>x:2, y:7, hp:8,<span class="Apple-converted-space">  </span>maxHp:8,<span class="Apple-converted-space">  </span>move:4, range:3, attack:3, moved:false, fired:false },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{ id:5, team:'blue', type:'artillery', x:1, y:9, hp:10, maxHp:10, move:3, range:4, attack:4, moved:false, fired:false },</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{ id:11, team:'red', type:'artillery', x:14, y:1, hp:10, maxHp:10, move:3, range:4, attack:4, moved:false, fired:false },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{ id:12, team:'red', type:'antiair',<span class="Apple-converted-space">  </span>x:14, y:4, hp:8,<span class="Apple-converted-space">  </span>maxHp:8,<span class="Apple-converted-space">  </span>move:4, range:3, attack:3, moved:false, fired:false },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{ id:13, team:'red', type:'artillery', x:13, y:6, hp:10, maxHp:10, move:3, range:4, attack:4, moved:false, fired:false },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{ id:14, team:'red', type:'antiair',<span class="Apple-converted-space">  </span>x:14, y:9, hp:8,<span class="Apple-converted-space">  </span>maxHp:8,<span class="Apple-converted-space">  </span>move:4, range:3, attack:3, moved:false, fired:false },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>{ id:15, team:'red', type:'artillery', x:13, y:10,hp:10, maxHp:10, move:3, range:4, attack:4, moved:false, fired:false },</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>selectedId: null,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>turn: 'blue',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>turnNumber: 1</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>};</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function isPassable(x, y) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (x &lt; 0 || y &lt; 0 || x &gt;= COLS || y &gt;= ROWS) return false;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const t = state.terrain[y][x];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>return t !== 1 &amp;&amp; t !== 2;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function unitAt(x, y) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>return state.units.find(u =&gt; u.x === x &amp;&amp; u.y === y &amp;&amp; u.hp &gt; 0);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// 计算我方视野，更新迷雾</span></p>
+<p class="p1"><span class="s1">function updateFog() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>state.fog = Array.from({length: ROWS}, () =&gt; Array(COLS).fill(true));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>state.units.forEach(u =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (u.hp &gt; 0 &amp;&amp; u.team === 'blue') {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>revealFog(u.x, u.y, 2);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>});</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">function revealFog(x, y, radius = 2) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>for (let dy = -radius; dy &lt;= radius; dy++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (let dx = -radius; dx &lt;= radius; dx++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const nx = x + dx, ny = y + dy;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (nx &gt;= 0 &amp;&amp; ny &gt;= 0 &amp;&amp; nx &lt; COLS &amp;&amp; ny &lt; ROWS) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (Math.abs(dx) + Math.abs(dy) &lt;= radius + 1) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>state.fog[ny][nx] = false;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function drawCell(x, y) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const px = x * CELL, py = y * CELL;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const t = state.terrain[y][x];</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (t === 1) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillStyle = '#5a5f66';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillRect(px, py, CELL, CELL);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.strokeStyle = '#3b3f45';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.strokeRect(px, py, CELL, CELL);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillStyle = '#7c828a';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.beginPath();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.moveTo(px + 6, py + 32);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.lineTo(px + 20, py + 8);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.lineTo(px + 34, py + 32);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.closePath();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fill();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>} else if (t === 2) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillStyle = '#2f4a2f';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillRect(px, py, CELL, CELL);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.strokeStyle = '#1f3520';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.strokeRect(px, py, CELL, CELL);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillStyle = '#4caf50';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (let i = 0; i &lt; 5; i++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>ctx.beginPath();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>ctx.arc(px + 8 + i * 6, py + 10 + (i % 2) * 18, 3, 0, Math.PI * 2);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>ctx.fill();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillStyle = '#c8b98a';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillRect(px, py, CELL, CELL);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.strokeStyle = '#a89a6b';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.strokeRect(px, py, CELL, CELL);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (state.fog[y][x]) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillStyle = 'rgba(10, 14, 20, 0.82)';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillRect(px, py, CELL, CELL);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function drawUnit(u) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (u.hp &lt;= 0) return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// 关键：红方单位，不在我方视野就不绘制！</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (u.team === 'red' &amp;&amp; state.fog[u.y][u.x]) return;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const px = u.x * CELL, py = u.y * CELL;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const cx = px + CELL / 2, cy = py + CELL / 2;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (u.team === 'blue') {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillStyle = '#3e8ef7';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.strokeStyle = '#cfe4ff';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillStyle = '#e55555';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.strokeStyle = '#ffd1d1';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (u.type === 'artillery') {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillRect(cx - 10, cy - 4, 20, 8);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillStyle = ctx.strokeStyle;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillRect(cx + 4, cy - 2, 8, 4);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillStyle = u.team === 'blue' ? '#3e8ef7' : '#e55555';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.beginPath();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.arc(cx - 8, cy + 4, 4, 0, Math.PI * 2);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.arc(cx + 8, cy + 4, 4, 0, Math.PI * 2);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fill();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillRect(cx - 10, cy - 6, 20, 12);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillStyle = ctx.strokeStyle;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillRect(cx - 4, cy - 10, 8, 4);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fillStyle = u.team === 'blue' ? '#3e8ef7' : '#e55555';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.beginPath();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.arc(cx - 8, cy + 6, 3, 0, Math.PI * 2);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.arc(cx + 8, cy + 6, 3, 0, Math.PI * 2);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.fill();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const hpRatio = u.hp / u.maxHp;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>ctx.fillStyle = '#000';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>ctx.fillRect(px + 4, py + 2, CELL - 8, 4);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>ctx.fillStyle = hpRatio &gt; 0.5 ? '#76ff9a' : hpRatio &gt; 0.25 ? '#ffd166' : '#ff6b6b';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>ctx.fillRect(px + 4, py + 2, (CELL - 8) * hpRatio, 4);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (u.id === state.selectedId) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.strokeStyle = '#ffe066';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.lineWidth = 2;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.strokeRect(px + 1, py + 1, CELL - 2, CELL - 2);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>ctx.lineWidth = 1;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function drawMoveRange(unit) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (!unit || unit.moved) return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>for (let y = 0; y &lt; ROWS; y++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (let x = 0; x &lt; COLS; x++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (!isPassable(x, y)) continue;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (unitAt(x, y)) continue;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const dist = Math.abs(x - unit.x) + Math.abs(y - unit.y);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (dist &gt; 0 &amp;&amp; dist &lt;= unit.move) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>ctx.fillStyle = 'rgba(118, 255, 154, 0.22)';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>ctx.fillRect(x * CELL, y * CELL, CELL, CELL);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>ctx.strokeStyle = 'rgba(118, 255, 154, 0.6)';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>ctx.strokeRect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function drawAttackRange(unit) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (!unit || unit.fired) return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>for (let y = 0; y &lt; ROWS; y++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (let x = 0; x &lt; COLS; x++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const dist = Math.abs(x - unit.x) + Math.abs(y - unit.y);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (dist &gt; 0 &amp;&amp; dist &lt;= unit.range) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>ctx.strokeStyle = 'rgba(255, 107, 107, 0.7)';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>ctx.setLineDash([4, 4]);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>ctx.strokeRect(x * CELL + 2, y * CELL + 2, CELL - 4, CELL - 4);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>ctx.setLineDash([]);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function render() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>ctx.clearRect(0, 0, canvas.width, canvas.height);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>for (let y = 0; y &lt; ROWS; y++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>for (let x = 0; x &lt; COLS; x++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>drawCell(x, y);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const selected = state.units.find(u =&gt; u.id === state.selectedId);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>drawMoveRange(selected);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>drawAttackRange(selected);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>state.units.forEach(u =&gt; drawUnit(u));</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function clickCell(x, y) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (state.turn !== 'blue') return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const clickedUnit = unitAt(x, y);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (clickedUnit &amp;&amp; clickedUnit.team === 'blue') {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>state.selectedId = clickedUnit.id;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>log(`选中我方 ${clickedUnit.type === 'artillery' ? '火炮' : '防空车'}`);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>render();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (state.selectedId) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const unit = state.units.find(u =&gt; u.id === state.selectedId);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!unit) return;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (clickedUnit &amp;&amp; clickedUnit.team === 'red') {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const dist = Math.abs(x - unit.x) + Math.abs(y - unit.y);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (dist &lt;= unit.range &amp;&amp; !unit.fired) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const dmg = unit.attack;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>clickedUnit.hp -= dmg;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>unit.fired = true;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>log(`${unit.type === 'artillery' ? '火炮' : '防空车'}攻击红方，造成 ${dmg} 伤害`);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (clickedUnit.hp &lt;= 0) log(`红方单位被歼灭！`);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>checkVictory();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>render();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>log(unit.fired ? '本单位已经开火过' : '目标超出射程');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (isPassable(x, y) &amp;&amp; !unitAt(x, y)) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const dist = Math.abs(x - unit.x) + Math.abs(y - unit.y);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (dist &lt;= unit.move &amp;&amp; !unit.moved) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>unit.x = x;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>unit.y = y;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>unit.moved = true;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>updateFog();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>log(`${unit.type === 'artillery' ? '火炮' : '防空车'}移动完成，现在可以开火！`);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>render();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>log(unit.moved ? '本单位已经移动完毕' : '超出移动距离');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">async function enemyTurn() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>state.turn = 'red';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>log(`—— 红方回合 ——`);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const reds = state.units.filter(u =&gt; u.team === 'red' &amp;&amp; u.hp &gt; 0);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const blues = state.units.filter(u =&gt; u.team === 'blue' &amp;&amp; u.hp &gt; 0);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>for (const u of reds) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (blues.length === 0) break;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>let target = null, bestDist = Infinity;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>blues.forEach(b =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const d = Math.abs(b.x - u.x) + Math.abs(b.y - u.y);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (d &lt; bestDist) { bestDist = d; target = b; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!target) continue;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (bestDist &lt;= u.range) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// 敌方攻击，但是敌人可能在迷雾里，只提示受伤，不显示敌人</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>target.hp -= u.attack;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>log(`&lt;span class="warn"&gt;警告！我方单位遭到敌方炮火打击，受到 ${u.attack} 伤害（看不到攻击者）&lt;/span&gt;`);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (target.hp &lt;= 0) log(`我方单位被击毁`, 'red');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const dx = Math.sign(target.x - u.x);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const dy = Math.sign(target.y - u.y);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>let moved = false;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>for (let s = u.move; s &gt; 0 &amp;&amp; !moved; s--) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const nx = u.x + dx * s, ny = u.y + dy * s;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (isPassable(nx, u.y) &amp;&amp; !unitAt(nx, u.y)) { u.x = nx; moved = true; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>else if (isPassable(u.x, ny) &amp;&amp; !unitAt(u.x, ny)) { u.y = ny; moved = true; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (moved) log(`红方单位向前推进`);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>checkVictory();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>render();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>await sleep(400);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>state.units.forEach(u =&gt; { u.moved = false; u.fired = false; });</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>state.turn = 'blue';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>state.turnNumber++;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>log(`—— 第 ${state.turnNumber} 回合 · 我方行动 ——`);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>render();</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">function sleep(ms){return new Promise(r=&gt;setTimeout(r,ms));}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">function checkVictory() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const blues = state.units.filter(u =&gt; u.team === 'blue' &amp;&amp; u.hp &gt; 0);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const reds = state.units.filter(u =&gt; u.team === 'red' &amp;&amp; u.hp &gt; 0);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (reds.length === 0) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>log(`🎉 胜利：全歼红方！`);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>state.turn = 'blue';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>} else if (blues.length === 0) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>log(`💀 失败：我方全灭`);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>state.turn = 'red';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">canvas.addEventListener('click', e =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const rect = canvas.getBoundingClientRect();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const x = Math.floor((e.clientX - rect.left) / CELL);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const y = Math.floor((e.clientY - rect.top) / CELL);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>clickCell(x, y);</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">document.getElementById('endTurn').addEventListener('click', async () =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (state.turn !== 'blue') return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>state.selectedId = null;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>await enemyTurn();</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">document.getElementById('reset').addEventListener('click', () =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>state = createInitialState();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>updateFog();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>logEl.innerHTML = '';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>log(`新关卡开始：选中火炮或防空车，移动后可以直接攻击敌人`);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>render();</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">state = createInitialState();</span></p>
+<p class="p1"><span class="s1">updateFog();</span></p>
+<p class="p1"><span class="s1">log(`开始：选中单位移动，移动完成后可攻击。小心！敌人能在迷雾里偷袭你！`);</span></p>
+<p class="p1"><span class="s1">render();</span></p>
+<p class="p1"><span class="s1">&lt;/script&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
+</body>
+</html>

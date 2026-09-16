@@ -26,12 +26,13 @@ export default function Battlefield({game,onCell,onReset}) {
   const click=e=>{
     const v=local(e),p=cell(e);
     const selected=game.units.find(u=>u.id===game.selectedId&&u.hp>0);
-    // A highlighted destination takes priority over a tall neighboring model.
-    if(p&&selected&&game.mode==='move'&&!selected.moved&&reachable(game,selected).has(`${p.x},${p.y}`)){onCell(p.x,p.y);return;}
     // Elevated vehicle bodies remain clickable, without testing hidden units.
     const hit=game.units.filter(u=>u.hp>0&&(u.team==='blue'||!game.fog[u.y][u.x])).reverse().find(u=>{
       const q=project(view,u.x+.5,u.y+.5,17);return Math.abs(q.x-v.x)<13*view.scale&&Math.abs(q.y-v.y)<11*view.scale;
     });
+    if(hit?.team==='red'){onCell(hit.x,hit.y);return;}
+    // A highlighted destination takes priority over a tall neighboring model.
+    if(p&&selected&&game.mode==='move'&&!selected.moved&&reachable(game,selected).has(`${p.x},${p.y}`)){onCell(p.x,p.y);return;}
     if(hit)onCell(hit.x,hit.y);else if(p)onCell(p.x,p.y);
   };
   const zoom=delta=>setCamera(c=>({...c,zoom:Math.max(.65,Math.min(2.8,c.zoom+delta))}));
@@ -45,7 +46,7 @@ export default function Battlefield({game,onCell,onReset}) {
       <div className="map-caption"><span className="crosshair">⌖</span><div>{game.name}<small>{game.direction} · {game.landmarks.map(l=>l.label).join(' / ')}</small></div></div>
       <div className="north">N<span>↗</span></div>
       <div className="map-controls"><button onClick={()=>zoom(-.2)} title="缩小">−</button><button onClick={()=>setCamera({zoom:1,pan:{x:0,y:0}})} title="重置视图">⌖</button><button onClick={()=>zoom(.2)} title="放大">＋</button></div>
-      <div className="map-command-hint">{game.turn==='red'?'敌方行动中…':game.mode==='repair'?'维修模式 · 点击相邻受损友军':game.mode==='attack'?'火力模式 · 点击可见敌军':'移动模式 · 点击绿色地格'}</div>
+      <div className="map-command-hint">{game.turn==='red'?'敌方行动中…':game.mode==='repair'?'维修模式 · 点击相邻受损友军，或点「取消维修」退出':game.mode==='attack'?'火力模式 · 点击可见敌军攻击并查看情报':'移动模式 · 点击绿色地格；点击敌军查看情报'}</div>
       {game.winner&&<div className="result"><span>OPERATION COMPLETE</span><h2>{game.winner==='blue'?'战区已肃清':'行动失败'}</h2><p>{game.winner==='blue'?`第 ${game.turnNumber} 回合 · 敌军全部歼灭`:'我方车辆全部损失，请调整部署战术。'}</p><button onClick={onReset}>重新部署</button></div>}
     </div>
     <div className="map-bottom"><div className="legend"><span><i className="swatch blue"/>我方</span><span><i className="swatch red"/>敌方</span><span><i className="swatch move"/>可移动</span><span><i className="swatch road"/>道路 / 桥梁</span><span><i className="swatch fog"/>迷雾</span></div><span className="map-tip">滚轮缩放 · 拖动平移</span></div>

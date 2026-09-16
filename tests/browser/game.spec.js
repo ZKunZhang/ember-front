@@ -24,6 +24,12 @@ test('three maps, nine vehicles, canvas movement, engine info and turn lifecycle
   await expect(page.locator('#repair-mode')).toBeVisible();
   await page.locator('#repair-mode').click();
   await expect(page.locator('.map-command-hint')).toContainText('维修模式');
+  await expect(page.locator('#repair-mode')).toHaveText('取消维修');
+  await page.locator('#repair-mode').click();
+  await expect(page.locator('.map-command-hint')).toContainText('移动模式');
+  await page.locator('[data-unit="1"]').click();
+  await expect(page.locator('.unit-name')).toContainText('侦察车');
+  await expect(page.locator('#attack-mode')).toHaveClass('active');
   await page.screenshot({path:'test-results/battle-desktop.png',fullPage:true});
   await page.locator('#end-turn').click();
   await expect(page.locator('#end-turn')).toBeDisabled();
@@ -55,4 +61,39 @@ test('mobile library and battlefield remain within viewport',async({page})=>{
   await expect(page.locator('.squad-row')).toHaveCount(9);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:'test-results/battle-mobile.png',fullPage:true});
+});
+
+test('visible enemy click shows intel without firing, attack mode still fires at that target',async({page})=>{
+  // Place one enemy in initial sight so this test does not depend on AI movement.
+  await page.route('**/src/game/scenarios.js',async route=>{
+    const response=await route.fetch();
+    const body=(await response.text()).replace(/const RED_SOUTH\s*=\s*\[\s*\[\s*7\s*,\s*14\s*\]/,'const RED_SOUTH = [[16,3]');
+    await route.fulfill({response,body});
+  });
+  await page.goto('/');await page.getByTestId('deploy-mountain-pass').click();
+  const point=await page.evaluate(async()=>{
+    const {createState}=await import('/src/game/engine.js');
+    const {createView,project}=await import('/src/rendering/projection.js');
+    const s=createState(),enemy=s.units.find(u=>u.team==='red');
+    if(enemy.x!==16||enemy.y!==3)throw new Error('Enemy inspection fixture was not applied');
+    const r=document.querySelector('#map').getBoundingClientRect();
+    const p=project(createView(s,r.width,r.height),enemy.x+.5,enemy.y+.5,17);
+    return {x:r.left+p.x,y:r.top+p.y,hp:enemy.hp};
+  });
+  await page.mouse.click(point.x,point.y);
+  const intel=page.locator('#enemy-intel');
+  await expect(intel).toBeVisible();
+  await expect(intel).toContainText('敌方');
+  await expect(intel).toContainText(`${point.hp} / ${point.hp}`);
+  await expect(intel.locator('.unit-stats>div')).toHaveCount(5);
+  await expect(intel.locator('button')).toHaveCount(0);
+  await expect(page.locator('[data-unit="1"]')).toHaveClass(/active/);
+  await expect(page.locator('#attack-mode')).toBeEnabled();
+  await expect(page.locator('#move-mode')).toHaveClass('active');
+  await page.locator('#attack-mode').click();
+  await page.mouse.click(point.x,point.y);
+  await expect(page.locator('#attack-mode')).toBeDisabled();
+  await expect(intel).toContainText(`${point.hp-3} / ${point.hp}`);
+  await page.locator('[data-unit="2"]').click();
+  await expect(intel).toHaveCount(0);
 });

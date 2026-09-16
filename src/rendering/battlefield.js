@@ -73,6 +73,8 @@ export function drawBattlefield(ctx,view,state,{hover=null,effect=null,now=perfo
     if(moves.has(`${x},${y}`))tile(x,y,'#cff89330','#c3e49a',.055,.3);
     if(selected&&state.mode==='attack'&&!selected.fired&&inFireRange(state,selected,{x,y}))tile(x,y,'#d8936824','#d9a38370',.09,.4);
     if(selected&&state.mode==='repair'&&distance(selected,{x,y})===1)tile(x,y,'#83dcb73d','#98efc4',.06,.4);
+    const inspected=unitAt(state,x,y);
+    if(!hidden&&inspected?.team==='red'&&inspected.id===state.inspectedId)tile(x,y,'#e5957335','#f5ae87',.04,.5);
     if(selected?.x===x&&selected?.y===y)tile(x,y,'#e5f3c135','#f5efab',.04,.5);
     if(hover?.x===x&&hover?.y===y)tile(x,y,'#edf7d429','#e9ecc6',.02,.6);
   }

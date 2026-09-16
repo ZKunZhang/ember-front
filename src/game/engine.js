@@ -89,7 +89,7 @@ export function moveUnit(s,id,x,y) {
     Object.assign(u,p); actual.push(p);
   }
   u.moved = true; updateFog(s);
-  return {ok:true,message:actual.length===path.length?'移动完成，可继续开火':'前方遭遇敌军，推进停止',path:actual,moved:actual.length};
+  return {ok:true,message:actual.length===path.length?'移动完成，可指定目标开火或维修':'前方遭遇敌军，推进停止',path:actual,moved:actual.length};
 }
 export function attackUnit(s,id,targetId) {
   const u = s.units.find(u=>u.id===id), t = s.units.find(u=>u.id===targetId), error = playerError(s,u);

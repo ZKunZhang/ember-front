@@ -1,7 +1,7 @@
 export const DIFFICULTIES = {
-  simple: { id: 'simple', label: '简单', enemyCountMultiplier: 0.5, enemyStatMultiplier: 0.7 },
-  easy: { id: 'easy', label: '容易', enemyCountMultiplier: 0.75, enemyStatMultiplier: 0.85 },
-  hard: { id: 'hard', label: '困难', enemyCountMultiplier: 1, enemyStatMultiplier: 1 },
+  simple: { id: 'simple', label: '简单', enemyCountMultiplier: 0.5, enemyStatMultiplier: 0.7, ai: 'direct' },
+  easy: { id: 'easy', label: '容易', enemyCountMultiplier: 0.75, enemyStatMultiplier: 0.85, ai: 'tactical' },
+  hard: { id: 'hard', label: '困难', enemyCountMultiplier: 1, enemyStatMultiplier: 1, ai: 'coordinated' },
 };
 
 export const DEFAULT_DIFFICULTY = 'simple';

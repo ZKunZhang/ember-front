@@ -1,6 +1,6 @@
 import { UNIT_TYPES } from './catalog.js';
 import { createScenario } from './scenarios.js';
-import { DEFAULT_DIFFICULTY, applyEnemyDifficulty } from './difficulty.js';
+import { DEFAULT_DIFFICULTY, applyEnemyDifficulty, getDifficulty } from './difficulty.js';
 
 export const distance = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 export const keyOf = (x, y) => `${x},${y}`;
@@ -9,16 +9,19 @@ export const onMap = (s, x, y) => Number.isInteger(x) && Number.isInteger(y) && 
 export const passable = (s, x, y) => onMap(s, x, y) && [0,3].includes(s.terrain[y][x]);
 export const unitAt = (s, x, y) => s.units.find(u => u.hp > 0 && u.x === x && u.y === y);
 
-export function createState(scenarioId, difficultyId = DEFAULT_DIFFICULTY) {
-  const scenario = createScenario(scenarioId, difficultyId);
+export function createState(scenarioId, difficultyId = DEFAULT_DIFFICULTY, formationId) {
+  const scenario = createScenario(scenarioId, difficultyId, formationId);
   const units = scenario.deployments.map((deployment, i) => {
     const spec = deployment.team === 'red'
       ? applyEnemyDifficulty(UNIT_TYPES[deployment.type], scenario.difficultyId)
       : UNIT_TYPES[deployment.type];
     return { ...spec, ...deployment, id: i + 1, hp: spec.maxHp, moved: false, fired: false };
   });
-  const s = { ...scenario, units, fog: [], selectedId: 1, turn: 'blue', turnNumber: 1, winner: null };
+  // The cursor is part of game state, so an undo also restores future AI choices.
+  const aiSeed = ((Date.now() ^ Math.floor(Math.random() * 0x100000000)) >>> 0) || 1;
+  const s = { ...scenario, units, fog: [], selectedId: 1, turn: 'blue', turnNumber: 1, winner: null, aiSeed, missionProgress: { captured: [], heldTurns: 0 } };
   updateFog(s);
+  updateMission(s);
   return s;
 }
 
@@ -91,7 +94,7 @@ export function moveUnit(s,id,x,y) {
     if (unitAt(s,p.x,p.y)) break;
     Object.assign(u,p); actual.push(p);
   }
-  u.moved = true; updateFog(s);
+  u.moved = true; updateFog(s); updateMission(s); checkOutcome(s);
   return {ok:true,message:actual.length===path.length?'移动完成，可指定目标开火或维修':'前方遭遇敌军，推进停止',path:actual,moved:actual.length};
 }
 export function attackUnit(s,id,targetId) {
@@ -119,34 +122,104 @@ export function repairUnit(s,id,targetId) {
   return {ok:true,message:`${t.name}恢复 ${healed} 点生命`,healed,targetId:t.id};
 }
 
-// Search the whole connected map for a firing position. This allows moving away
+// A small deterministic PRNG makes equivalent AI choices vary between deployments
+// without making replay after undo depend on ambient randomness.
+function nextAiRandom(s) {
+  if (!Number.isInteger(s.aiSeed)) return 0;
+  s.aiSeed = (Math.imul(s.aiSeed, 1664525) + 1013904223) >>> 0;
+  return s.aiSeed / 0x100000000;
+}
+function choose(s, choices, score) {
+  if (!choices.length) return null;
+  let bestScore = -Infinity, best = [];
+  for (const choice of choices) {
+    const value = score(choice);
+    if (value > bestScore) { bestScore = value; best = [choice]; }
+    else if (value === bestScore) best.push(choice);
+  }
+  return best[Math.floor(nextAiRandom(s) * best.length)] ?? best[0];
+}
+const healthRatio = u => u.hp / u.maxHp;
+const targetValue = t => t.attack * 2 + t.range + (t.repair ? 4 : 0) + (t.indirect ? 3 : 0);
+function targetFor(s, u, targets, mode) {
+  return choose(s, targets, t => {
+    const kill = u.attack >= t.hp + t.armor ? 1000 : 0;
+    if (mode === 'coordinated') return kill + (1 - healthRatio(t)) * 100 + targetValue(t) - distance(u,t);
+    if (mode === 'tactical') return kill + (1 - healthRatio(t)) * 40 + targetValue(t) - distance(u,t);
+    return -t.hp * 10 - distance(u,t);
+  });
+}
+function threatAt(s, point, enemies) {
+  return enemies.reduce((total, enemy) => total + (inFireRange(s, enemy, point) ? enemy.attack : 0), 0);
+}
+function repairTarget(s, u, adjacentOnly = false) {
+  return s.units.filter(t => t.team === 'red' && t.hp > 0 && t.id !== u.id && t.hp < t.maxHp && (!adjacentOnly || distance(t,u) === 1))
+    .sort((a,b) => healthRatio(a) - healthRatio(b) || b.attack - a.attack || a.id - b.id)[0];
+}
+function moveToRepair(s, u, target) {
+  const routes = reachable(s,u,u.move,false);
+  const choices = [...routes.values()].filter(path => distance(path.at(-1),target) === 1);
+  const path = choose(s, choices, path => -path.length);
+  if (path) Object.assign(u,path.at(-1));
+  return Boolean(path);
+}
+function retreat(s, u, enemies) {
+  const current = threatAt(s,u,enemies), routes = reachable(s,u,u.move,false);
+  const choices = [...routes.values()].filter(path => threatAt(s,path.at(-1),enemies) < current);
+  const path = choose(s, choices, path => {
+    const point = path.at(-1);
+    return -threatAt(s,point,enemies) * 100 + Math.min(...enemies.map(t => distance(point,t))) - path.length;
+  });
+  if (path) Object.assign(u,path.at(-1));
+  return Boolean(path);
+}
+
+// Search the whole connected map for firing positions. This allows moving away
 // from the target temporarily when a mountain wall requires a long detour.
 export function enemyAct(s,id) {
   const u = s.units.find(u=>u.id===id);
   if (s.winner || s.turn!=='red' || !u || u.team!=='red' || u.hp<=0) return {ok:false};
   const origin = {x:u.x,y:u.y};
   const enemies = s.units.filter(t=>t.team==='blue'&&t.hp>0);
+  const mode = getDifficulty(s.difficultyId).ai;
   if (!enemies.length) { checkOutcome(s); return {ok:false}; }
-  const targetsAt = point => enemies.filter(t=>inFireRange(s,{...u,...point},t)).sort((a,b)=>a.hp-b.hp);
+  const targetsAt = point => enemies.filter(t=>inFireRange(s,{...u,...point},t));
   if (!u.fired && u.repair) {
-    const damaged = s.units.find(t=>t.team==='red'&&t.hp>0&&t.hp<t.maxHp&&t.id!==u.id&&distance(t,u)===1);
+    // Preserve the adjacent repair action before considering a hard-AI reposition.
+    let damaged = repairTarget(s,u,true);
+    if (!damaged && mode === 'coordinated' && !u.moved) {
+      const distant = repairTarget(s,u);
+      if (distant && moveToRepair(s,u,distant)) {
+        u.moved = true;
+        updateFog(s);
+        damaged = distance(distant,u)===1 ? distant : repairTarget(s,u,true);
+      }
+    }
     if (damaged) {
       const healed = Math.min(u.repair,damaged.maxHp-damaged.hp);
       damaged.hp += healed; u.fired = true;
       return {ok:true,healed,targetId:damaged.id,hidden:s.fog[u.y][u.x],message:'敌方工程车维修友军'};
     }
   }
+  if (mode === 'coordinated' && healthRatio(u) <= 0.4 && !u.moved && retreat(s,u,enemies)) u.moved = true;
   if (!targetsAt(u).length && !u.moved) {
     const routes = reachable(s,u,s.cols*s.rows,false);
-    let best = null;
+    const firingPaths = [];
     for (const path of routes.values()) {
-      if (targetsAt(path.at(-1)).length && (!best || path.length<best.length)) best=path;
+      const point = path.at(-1), targets = targetsAt(point);
+      if (targets.length) firingPaths.push({path,point,targets});
     }
-    if (best) Object.assign(u,best[Math.min(u.move,best.length)-1]);
+    const best = choose(s, firingPaths, candidate => {
+      const target = targetFor(s,{...u,...candidate.point},candidate.targets,mode);
+      // Tactical and coordinated AI prefer a useful firing position, then a short route.
+      const targetScore = mode === 'direct' ? 0 : targetValue(target) + (1 - healthRatio(target)) * 10 + (u.attack >= target.hp + target.armor ? 1000 : 0);
+      return targetScore * 100 - candidate.path.length;
+    });
+    if (best) Object.assign(u,best.path[Math.min(u.move,best.path.length)-1]);
     u.moved = true;
   }
   updateFog(s);
-  const hidden = s.fog[u.y][u.x], target = targetsAt(u)[0];
+  const hidden = s.fog[u.y][u.x], target = targetFor(s,u,targetsAt(u),mode);
   if (target && !u.fired) {
     const damage = damageFor(u,target);
     target.hp = Math.max(0,target.hp-damage); u.fired = true;
@@ -157,13 +230,35 @@ export function enemyAct(s,id) {
   return {ok:true,hidden,moved,message:moved?'敌方推进':'敌方待命'};
 }
 export function checkOutcome(s) {
-  if (!s.units.some(u=>u.team==='red'&&u.hp>0)) s.winner='blue';
-  else if (!s.units.some(u=>u.team==='blue'&&u.hp>0)) s.winner='red';
+  if (s.winner) return s.winner;
+  const blue = s.units.filter(u=>u.team==='blue'&&u.hp>0);
+  if (!blue.length) { s.winner='red'; return s.winner; }
+  const mission = s.mission;
+  if (mission?.kind==='escort' && !blue.some(u=>u.type==='engineer')) { s.winner='red'; return s.winner; }
+  if (mission) {
+    const progress = s.missionProgress ?? { captured: [], heldTurns: 0 };
+    if (mission.kind==='capture' && progress.captured.length===mission.points.length && progress.captured.every(Boolean)) s.winner='blue';
+    else if (mission.kind==='escort' && blue.some(u=>u.type==='engineer'&&u.x===mission.point.x&&u.y===mission.point.y)) s.winner='blue';
+    else if (mission.kind==='hold' && progress.heldTurns>=mission.turns) s.winner='blue';
+  } else if (!s.units.some(u=>u.team==='red'&&u.hp>0)) s.winner='blue';
   return s.winner;
+}
+export function updateMission(s,endEnemyTurn=false) {
+  const mission=s.mission;
+  const progress=s.missionProgress ?? (s.missionProgress={captured:[],heldTurns:0});
+  if (!mission || s.winner) return progress;
+  const blue=s.units.filter(u=>u.team==='blue'&&u.hp>0);
+  if (mission.kind==='capture') {
+    progress.captured=mission.points.map((point,index)=>Boolean(progress.captured[index])||blue.some(u=>u.x===point.x&&u.y===point.y));
+  } else if (mission.kind==='hold' && endEnemyTurn) {
+    progress.heldTurns=blue.some(u=>u.x===mission.point.x&&u.y===mission.point.y) ? progress.heldTurns+1 : 0;
+  }
+  return progress;
 }
 export function beginPlayerTurn(s) {
   if (s.winner) return;
   s.turn='blue'; s.turnNumber++;
   for (const u of s.units) { u.moved=false; u.fired=false; }
   updateFog(s);
+  updateMission(s,true); checkOutcome(s);
 }

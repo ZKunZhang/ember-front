@@ -172,3 +172,63 @@ test('remaining movement and failed moves do not automatically end the turn',()=
   assert.equal(failed.turn,'blue');assert.equal(failed.logs[0].kind,'warn');
   assert.equal(gameReducer(failed,{type:'END_TURN'}).turn,'red');
 });
+
+test('successful actions record undo snapshots while selection and failed actions do not',()=>{
+  const s=initialGame(), before=s.undoHistory;
+  assert.equal(gameReducer(s,{type:'SELECT',id:1}).undoHistory.length,0);
+  assert.equal(gameReducer(s,{type:'CELL',x:-1,y:-1}).undoHistory.length,0);
+  const destination=reachable(s,s.units[0]).values().next().value.at(-1);
+  const moved=gameReducer(gameReducer(s,{type:'SELECT',id:1}),{type:'CELL',...destination});
+  assert.equal(moved.undoHistory.length,1);assert.equal(s.undoHistory,before);
+  const restored=gameReducer(moved,{type:'UNDO'});
+  assert.equal(restored.units[0].x,s.units[0].x);assert.equal(restored.units[0].y,s.units[0].y);
+  assert.equal(restored.effect,null);assert.equal(restored.session,moved.session+1);
+});
+
+test('multiple undo restores snapshots across end turn and enemy steps, rejecting stale callbacks',()=>{
+  let s=initialGame();
+  const movedTo=reachable(s,s.units[0]).values().next().value.at(-1);
+  s=gameReducer(gameReducer(s,{type:'SELECT',id:1}),{type:'CELL',...movedTo});
+  const ended=gameReducer(s,{type:'END_TURN'});let stepped=ended;
+  stepped=gameReducer(stepped,{type:'ENEMY_STEP',session:stepped.session});
+  const undone=gameReducer(stepped,{type:'UNDO'});
+  assert.equal(undone.turn,'blue');assert.equal(undone.units[0].moved,true);
+  assert.equal(gameReducer(undone,{type:'ENEMY_STEP',session:stepped.session}),undone);
+  const twice=gameReducer(undone,{type:'UNDO'});
+  assert.equal(twice.turn,'blue');assert.equal(twice.units[0].moved,false);
+});
+
+test('reset clears undo history',()=>{
+  const s=initialGame(), destination=reachable(s,s.units[0]).values().next().value.at(-1);
+  const moved=gameReducer(gameReducer(s,{type:'SELECT',id:1}),{type:'CELL',...destination});
+  const reset=gameReducer(moved,{type:'RESET'});
+  assert.deepEqual(reset.undoHistory,[]);
+});
+
+test('undo restores a lethal shot, victory, fog and the firing allowance',()=>{
+  const s=initialGame(),blue=s.units[0],red=s.units.find(u=>u.team==='red');
+  s.units=[blue,red];red.x=16;red.y=3;red.hp=1;s.fog[3][16]=false;
+  const shot=gameReducer(s,{type:'CELL',x:16,y:3});
+  assert.equal(shot.winner,'blue');
+  const restored=gameReducer(shot,{type:'UNDO'});
+  assert.deepEqual(restored.units,s.units);assert.deepEqual(restored.fog,s.fog);
+  assert.equal(restored.winner,null);assert.equal(restored.effect,null);
+  assert.deepEqual(restored.logs,s.logs);
+});
+
+test('undo restores repair health, action allowance and repair selection',()=>{
+  const s=initialGame();s.units[2].hp-=5;s.selectedId=s.units[5].id;s.mode='repair';
+  const target=s.units[2],repaired=gameReducer(s,{type:'CELL',x:target.x,y:target.y});
+  assert.equal(repaired.units[2].hp,target.maxHp);
+  const restored=gameReducer(repaired,{type:'UNDO'});
+  assert.deepEqual(restored.units,s.units);assert.equal(restored.mode,'repair');
+  assert.equal(restored.selectedId,s.selectedId);
+});
+
+test('selected formation survives redeployment and changes with a new scenario',()=>{
+  const s=gameReducer(initialGame(),{type:'RESET',formationId:'armored'});
+  assert.equal(s.formationId,'armored');
+  assert.equal(gameReducer(s,{type:'RESET'}).formationId,'armored');
+  const changed=gameReducer(s,{type:'RESET',scenarioId:'forest-corridor'});
+  assert.equal(changed.formationId,'mobile');
+});

@@ -1,13 +1,34 @@
+import { useEffect, useMemo, useRef } from 'react';
 import { createScenario } from '../game/scenarios.js';
-import { createView, project } from '../rendering/projection.js';
-const colors={'0':'#60764e','1':'#909178','2':'#385a39','3':'#b9a475','4':'#437477'};
-export default function ScenarioPreview({id,difficulty}) {
-  const s=createScenario(id,difficulty),view=createView(s,450,225),p=(x,y)=>{const point=project(view,x,y);return [point.x,point.y];};
-  return <svg className="scenario-preview" viewBox="0 0 450 225" aria-label={`${s.name}地形与部署预览`}>
-    <defs><radialGradient id={`glow-${id}`}><stop stopColor="#475938" stopOpacity=".5"/><stop offset="1" stopColor="#19241c" stopOpacity="0"/></radialGradient></defs>
-    <ellipse cx="230" cy="132" rx="220" ry="110" fill={`url(#glow-${id})`}/>
-    {s.terrain.flatMap((row,y)=>row.map((t,x)=>t<0?null:<polygon key={`${x},${y}`} points={[p(x,y),p(x+1,y),p(x+1,y+1),p(x,y+1)].map(a=>a.join(',')).join(' ')} fill={colors[t]} stroke="#192b20" strokeWidth=".4"/>))}
-    {s.terrain.flatMap((row,y)=>row.map((t,x)=>t!==1?null:<path key={`mountain-${x},${y}`} d={`M ${p(x+.05,y+.95).join(' ')} L ${p(x+.5,y+.5)[0]} ${p(x+.5,y+.5)[1]-9} L ${p(x+.95,y+.95).join(' ')} Z`} fill="#b0ab89" opacity=".8"/>))}
-    {s.deployments.map((u,i)=>{const [x,y]=p(u.x+.5,u.y+.5);return <circle key={i} cx={x} cy={y} r="2.2" fill={u.team==='blue'?'#d0efe1':'#f4a07d'}/>;})}
-  </svg>;
+import { UNIT_TYPES } from '../game/catalog.js';
+import { createView } from '../rendering/projection.js';
+import { drawBattlefield } from '../rendering/battlefield.js';
+
+export default function ScenarioPreview({id,difficulty,formationId}) {
+  const canvasRef=useRef(null);
+  const state=useMemo(()=>{
+    const scenario=createScenario(id,difficulty,formationId);
+    return {...scenario,selectedId:null,turn:'blue',winner:null,
+      fog:Array.from({length:scenario.rows},()=>Array(scenario.cols).fill(false)),
+      units:scenario.deployments.map((unit,index)=>({...unit,id:index+1,hp:UNIT_TYPES[unit.type].maxHp,maxHp:UNIT_TYPES[unit.type].maxHp})),
+    };
+  },[id,difficulty,formationId]);
+  useEffect(()=>{
+    const canvas=canvasRef.current,ctx=canvas.getContext('2d');
+    let frame;
+    const draw=()=>{
+      const {width,height}=canvas.getBoundingClientRect();
+      if(!width||!height)return;
+      const dpr=window.devicePixelRatio||1;
+      canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      // The overview fits the entire board and shares every terrain/vehicle model.
+      const view=createView(state,width,height,1);
+      drawBattlefield(ctx,view,state,{preview:true,reducedMotion:true});
+    };
+    const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(draw);};
+    const observer=new ResizeObserver(schedule);observer.observe(canvas);schedule();
+    return()=>{observer.disconnect();cancelAnimationFrame(frame);};
+  },[state]);
+  return <canvas ref={canvasRef} className="scenario-preview" width="450" height="225" style={{aspectRatio:'2 / 1'}} role="img" aria-label={`${state.name}地形与部署预览`}/>;
 }

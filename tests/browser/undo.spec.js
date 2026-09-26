@@ -9,9 +9,10 @@ test('undo restores movement and an enemy round, and redeployment clears history
     const {createView,project}=await import('/src/rendering/projection.js');
     const r=document.querySelector('#map').getBoundingClientRect();
     const p=project(createView(createState(),r.width,r.height),16.5,3.5);
-    return{x:r.left+p.x,y:r.top+p.y};
+    return{x:p.x,y:p.y};
   });
-  await page.mouse.click(point.x,point.y);
+  // Canvas-local coordinates remain valid when toolbar clicks scroll the page.
+  await page.locator('#map').click({position:point});
   await expect(page.locator('#move-mode')).toHaveText('✓ 已移动');
   await undo.click();
   await expect(page.locator('#move-mode')).toHaveText('◇ 移动');
@@ -26,7 +27,7 @@ test('undo restores movement and an enemy round, and redeployment clears history
   await page.waitForTimeout(600);
   await expect(page.locator('#round')).toHaveText('01');
   await expect(page.locator('#end-turn')).toBeEnabled();
-  await page.mouse.click(point.x,point.y);
+  await page.locator('#map').click({position:point});
   await expect(undo).toBeEnabled();
   await page.locator('#reset').click();
   await expect(undo).toBeDisabled();

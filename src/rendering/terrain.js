@@ -57,18 +57,40 @@ export function createTerrainRenderer(painter, state) {
 
   function ground(x, y, hidden) {
     const type = terrainAt(x, y), variation = (x * 13 + y * 7) % 4;
-    const grass = hidden ? ['#35483d', '#394c40', '#33473b', '#3b4e41'] : ['#799a61', '#829f66', '#7b985e', '#73925b'];
-    tile(x, y, type === 4 ? (hidden ? '#293f3c' : '#398e9c') : grass[variation], hidden ? '#7b886519' : '#273d302c');
+    const grass = hidden ? ['#343d3c', '#39413f', '#333c39', '#3d4340'] : ['#817b60', '#898066', '#77765c', '#82785f'];
+    tile(x, y, type === 4 ? (hidden ? '#293f3c' : '#426c76') : grass[variation], hidden ? null : '#273d3012');
     if (type === 4) water(x, y, hidden);
     else if (type === 3) road(x, y, hidden);
     else {
+      // Deterministic surface scars are decoration, never obstacles or unit intel.
+      const scar = (x * 37 + y * 19) % 23;
+      if (type === 0 && scar < 3) {
+        const center = p(x + .48, y + .52, .15);
+        ctx.save();
+        const radius = (9 + scar * 3) * scale;
+        const soil = ctx.createRadialGradient(center.x, center.y, radius * .1, center.x, center.y, radius);
+        soil.addColorStop(0, hidden ? '#171f2090' : '#24211de0');
+        soil.addColorStop(.58, hidden ? '#29302e80' : '#4b4130b0');
+        soil.addColorStop(1, '#5e513500');
+        ctx.translate(center.x, center.y);ctx.scale(1, .52);
+        ctx.fillStyle = soil;ctx.translate(-center.x, -center.y);
+        ctx.beginPath();ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);ctx.fill();
+        ctx.restore();
+        line(p(x + .65, y + .27, .2), p(x + .7, y + .65, .2), hidden ? '#73705b33' : '#c0a17a70', 1.2);
+      }
+      if (type === 0 && scar > 18) {
+        for (const offset of [.32, .64]) {
+          line(p(x, y + offset, .12), p(x + 1, y + offset + .08, .12), hidden ? '#20292338' : '#39362b60', 2.2);
+          for (let i = 0; i < 6; i++) line(p(x + i / 6, y + offset - .035, .14), p(x + i / 6, y + offset + .05, .14), '#292c2440', .8);
+        }
+      }
       // Broken tufts and soft patches retain a natural field beneath the tactical grid.
       for (let i = 0; i < 4; i++) {
         const a = x + .12 + ((x * 19 + y * 7 + i * 23) % 69) / 100;
         const b = y + .14 + ((y * 17 + x * 5 + i * 29) % 67) / 100;
         const root = p(a,b,.1);
-        line(root,p(a-.015,b,2),hidden?'#596b4e':'#bdd18a',.7);
-        line(root,p(a+.04,b+.025,1.2),hidden?'#465d42':'#4e7044',.8);
+        line(root,p(a-.015,b,2),hidden?'#596b4e':'#a5a07a',.7);
+        line(root,p(a+.04,b+.025,1.2),hidden?'#465d42':'#626449',.8);
       }
 
     }
@@ -101,7 +123,7 @@ export function createTerrainRenderer(painter, state) {
     ctx.fillStyle = '#11291c4d';ctx.beginPath();ctx.ellipse(center.x + 4 * scale, center.y + 2 * scale, height * .28 * scale, height * .11 * scale, 0, 0, Math.PI * 2);ctx.fill();
     line(center, p(x, y, height * .82), hidden ? '#544a38' : '#795033', 3.4);
     for (const side of [-1, 1]) line(p(x, y, height * .35), { x: center.x + side * height * .19 * scale, y: center.y - height * .74 * scale }, hidden ? '#665741' : '#9c7141', 1.8);
-    const colors = hidden ? ['#2d4837', '#395840', '#50684a'] : ['#315b3e', '#477d49', '#6a9b55', '#a0bc6a'];
+    const colors = hidden ? ['#2d4837', '#395840', '#50684a'] : ['#303e35', '#4b5940', '#707652', '#93946b'];
     // Overlapping rounded foliage masses give the trees a sculpted, painted silhouette.
     for (let i = 0; i < 9; i++) {
       const angle = i * 2.4 + seed, radius = height * (i < 6 ? .24 : .17) * scale;
@@ -113,7 +135,7 @@ export function createTerrainRenderer(painter, state) {
       ctx.fillStyle = foliage;ctx.fill();
       if (!hidden) {
         ctx.beginPath();ctx.ellipse(cx - radius * .2, cy - radius * .28, radius * .46, radius * .22, -.3, 0, Math.PI * 2);
-        ctx.fillStyle = '#e6f4bd38';ctx.fill();
+        ctx.fillStyle = '#dfcfab24';ctx.fill();
       }
     }
     for (let i = 0; i < 5; i++) {

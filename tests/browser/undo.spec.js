@@ -18,7 +18,7 @@ test('undo restores movement and an enemy round, and redeployment clears history
   await expect(page.locator('#move-mode')).toHaveText('◇ 移动');
   await expect(undo).toBeDisabled();
   await page.locator('#end-turn').click();
-  await expect(page.locator('#round')).toHaveText('02');
+  await expect(page.locator('#round')).toHaveText('02',{timeout:15000});
   await undo.click();
   await expect(page.locator('#round')).toHaveText('01');
   await expect(page.locator('#end-turn')).toBeEnabled();

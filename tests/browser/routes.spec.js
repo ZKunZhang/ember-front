@@ -7,7 +7,7 @@ test('deployment has a reloadable URL with difficulty and formation',async({page
   await page.getByTestId('deploy-forest-corridor').click();
   await expect(page).toHaveURL(/\/battle\/forest-corridor\?difficulty=hard&formation=artillery$/);
   await page.locator('#end-turn').click();
-  await expect(page.locator('#round')).toHaveText('02');
+  await expect(page.locator('#round')).toHaveText('02',{timeout:15000});
   await page.reload();
   await expect(page.locator('#round')).toHaveText('01');
   await expect(page.locator('#undo')).toBeDisabled();

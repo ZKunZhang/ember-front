@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectMapUnit } from './unit-selection.js';
 
 test('nine maps, nine vehicles, canvas movement, engine info and turn lifecycle', async ({page})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -7,7 +8,8 @@ test('nine maps, nine vehicles, canvas movement, engine info and turn lifecycle'
   await expect(page.locator('.vehicle-catalog>div')).toHaveCount(6);
   await page.screenshot({path:'test-results/library.png',fullPage:true});
   await page.getByTestId('deploy-mountain-pass').click();
-  await expect(page.locator('.squad-row')).toHaveCount(9);
+  await expect(page.locator('.squad-row')).toHaveCount(0);
+  await expect(page.locator('.unit-panel')).toHaveCount(1);
   await expect(page.locator('#kill-count')).toHaveText('00 / 7');
   await expect(page.locator('.unit-name')).toContainText('侦察车');
   await page.screenshot({path:'test-results/range-contours.png',fullPage:true});
@@ -21,14 +23,14 @@ test('nine maps, nine vehicles, canvas movement, engine info and turn lifecycle'
   });
   await page.mouse.click(coords.x,coords.y);
   await expect(page.locator('#move-mode')).toHaveText('✓ 已移动');
-  await page.locator('[data-unit="6"]').click();
+  await selectMapUnit(page, 6);
   await expect(page.locator('#repair-mode')).toBeVisible();
   await page.locator('#repair-mode').click();
   await expect(page.locator('.map-command-hint')).toContainText('维修模式');
   await expect(page.locator('#repair-mode')).toHaveText('取消维修');
   await page.locator('#repair-mode').click();
   await expect(page.locator('.map-command-hint')).toContainText('点击蓝格移动');
-  await page.locator('[data-unit="1"]').click();
+  await selectMapUnit(page, 1, {x:16,y:3});
   await expect(page.locator('.unit-name')).toContainText('侦察车');
   await expect(page.locator('#attack-mode')).toHaveCount(0);
   await page.screenshot({path:'test-results/battle-desktop.png',fullPage:true});
@@ -59,7 +61,8 @@ test('mobile library and battlefield remain within viewport',async({page})=>{
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:'test-results/library-mobile.png',fullPage:true});
   await page.getByTestId('deploy-twin-bridges').click();
-  await expect(page.locator('.squad-row')).toHaveCount(9);
+  await expect(page.locator('.squad-row')).toHaveCount(0);
+  await expect(page.locator('.unit-panel')).toHaveCount(1);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:'test-results/battle-mobile.png',fullPage:true});
 });
@@ -88,9 +91,10 @@ test('visible enemy click fires directly and shows intel without a mode switch',
   await expect(intel).toContainText(`${point.hp-3} / ${point.hp}`);
   await expect(intel.locator('.unit-stats>div')).toHaveCount(5);
   await expect(intel.locator('button')).toHaveCount(0);
-  await expect(page.locator('[data-unit="1"]')).toHaveClass(/active/);
+  await expect(page.locator('.unit-panel')).toHaveCount(1);
+  await expect(page.locator('.unit-panel')).toHaveAttribute('id','enemy-intel');
   await expect(page.locator('#attack-mode')).toHaveCount(0);
-  await expect(page.locator('#attack-status')).toHaveText('✓ 已行动');
+  await expect(page.locator('#attack-status')).toHaveCount(0);
   await page.mouse.click(point.x,point.y);
   await expect(intel).toContainText(`${point.hp-3} / ${point.hp}`);
   await page.screenshot({path:'test-results/ranges-and-intel.png',fullPage:true});
@@ -98,15 +102,18 @@ test('visible enemy click fires directly and shows intel without a mode switch',
     await page.setViewportSize({width,height:1080});
     const overlaps=await page.evaluate(()=>{
       const intersect=(a,b)=>Math.min(a.right,b.right)>Math.max(a.left,b.left)+1&&Math.min(a.bottom,b.bottom)>Math.max(a.top,b.top)+1;
-      const panels=[...document.querySelectorAll('aside>section')].map(e=>e.getBoundingClientRect());
+      const panels=[...document.querySelectorAll('.command-panels>section')].map(e=>e.getBoundingClientRect());
       const controls=document.querySelector('.map-controls').getBoundingClientRect(),hint=document.querySelector('.map-command-hint').getBoundingClientRect();
       return {panels:panels.some((a,i)=>panels.slice(i+1).some(b=>intersect(a,b))),toolbar:intersect(controls,hint),overflow:document.documentElement.scrollWidth>innerWidth};
     });
     expect(overlaps).toEqual({panels:false,toolbar:false,overflow:false});
     await page.screenshot({path:`test-results/layout-${width}.png`,fullPage:true});
   }
-  await page.locator('[data-unit="2"]').click();
+  await selectMapUnit(page, 2);
   await expect(intel).toHaveCount(0);
+  await expect(page.locator('.unit-panel')).toHaveCount(1);
+  await expect(page.locator('.unit-sub')).toContainText('我方');
+  await expect(page.locator('#move-mode')).toBeVisible();
 });
 
 test('each mission offers three difficulties and redeployment keeps the chosen level',async({page})=>{
@@ -128,16 +135,19 @@ test('each mission offers three difficulties and redeployment keeps the chosen l
   await expect(page.locator('.mission-head h1')).toContainText('困难');
 });
 
-for(const gesture of ['drag','trackpad','buttons','touch'])test(`map pans with ${gesture} and preserves cell hit testing`,async({page})=>{
+for(const gesture of ['drag','trackpad','vertical-trackpad','buttons','touch'])test(`map pans with ${gesture} and preserves cell hit testing`,async({page})=>{
   await page.goto('/');await page.getByTestId('deploy-mountain-pass').click();
   const map=page.locator('#map'),r=await map.boundingBox();
   const start={x:r.x+r.width/2,y:r.y+100};
-  let dx=100;
+  let dx=100,dy=0;
   if(gesture==='drag'){
     await page.mouse.move(start.x,start.y);await page.mouse.down();
     await page.mouse.move(start.x+dx,start.y,{steps:8});await page.mouse.up();
   }else if(gesture==='trackpad'){
     await page.mouse.move(start.x,start.y);await page.mouse.wheel(-dx,0);
+  }else if(gesture==='vertical-trackpad'){
+    dx=0;dy=80;await page.mouse.move(start.x,start.y);await page.mouse.wheel(0,-dy);
+    await expect(page.locator('.zoom-level')).toHaveText('115%');
   }else if(gesture==='buttons'){
     dx=120;await page.getByRole('button',{name:'向右平移',exact:true}).click();
   }else{
@@ -149,13 +159,13 @@ for(const gesture of ['drag','trackpad','buttons','touch'])test(`map pans with $
     await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:false});
   }
   await expect(page.locator('#move-mode')).toHaveText('◇ 移动');
-  const destination=await page.evaluate(async dx=>{
+  const destination=await page.evaluate(async ({dx,dy})=>{
     const {createState}=await import('/src/game/engine.js');
     const {createView,project,DEFAULT_ZOOM,VEHICLE_SCALE}=await import('/src/rendering/projection.js');
     const r=document.querySelector('#map').getBoundingClientRect();
-    const p=project(createView(createState(),r.width,r.height,DEFAULT_ZOOM,{x:dx,y:0}),16.5,3.5);
+    const p=project(createView(createState(),r.width,r.height,DEFAULT_ZOOM,{x:dx,y:dy}),16.5,3.5);
     return{x:r.left+p.x,y:r.top+p.y};
-  },dx);
+  },{dx,dy});
   await page.mouse.move(destination.x,destination.y);
   await expect(page.locator('.coordinates')).toHaveText('GRID 17 : 4');
   await page.mouse.click(destination.x,destination.y);
@@ -180,7 +190,7 @@ test('dense diagonal vehicle models select the hovered unit without moving it',a
       await page.mouse.move(p.x,p.y);
       await expect(page.locator('.coordinates')).toHaveText(`我方 ${String(p.id).padStart(2,'0')} · ${p.name}`);
       await page.mouse.click(p.x,p.y);
-      await expect(page.locator(`[data-unit="${p.id}"]`)).toHaveClass(/active/);
+      await expect(page.locator('.unit-panel')).toHaveAttribute('data-unit',String(p.id));
       await expect(page.locator('#move-mode')).toHaveText('◇ 移动');
     }
   }

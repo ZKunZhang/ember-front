@@ -16,13 +16,23 @@ function effect(s,result,sourceId) {
     amount:result.healed??-result.damage,destroyed:target.hp<=0,
     source:visibleSource?{id:source.id,x:source.x,y:source.y,type:source.type}:null};
 }
+function movement(s,unitId,origin,path,previousFog) {
+  if(!path?.length)return;
+  const unit=s.units.find(u=>u.id===unitId);
+  const points=[origin,...path],heading=unit.heading||{x:unit.team==='blue'?-1:1,y:0};
+  const end=points.at(-1),before=points.at(-2);
+  unit.heading={x:end.x-before.x,y:end.y-before.y};
+  // Never animate a hidden route, including a route concealed by a lost scout.
+  if(unit.team==='red'&&points.some(p=>previousFog[p.y][p.x]||s.fog[p.y][p.x]))return;
+  s.movement={id:++s.movementSequence,unitId,team:unit.team,heading,path:points};
+}
 function finishPlayerTurn(s) {
   s.turn='red';s.selectedId=null;s.enemyIndex=0;
   s.enemyQueue=s.units.filter(u=>u.team==='red'&&u.hp>0).map(u=>u.id);
   addLog(s,'敌方行动开始，保持警戒。','warn');
 }
 export function initialGame(id,session=1,difficulty='simple',formationId) {
-  const s={...createState(id,difficulty,formationId),session,mode:'move',inspectedId:null,logs:[],logSequence:0,effectSequence:0,effect:null,enemyIndex:0,enemyQueue:[],undoHistory:[]};
+  const s={...createState(id,difficulty,formationId),session,mode:'move',inspectedId:null,logs:[],logSequence:0,effectSequence:0,effect:null,movementSequence:0,movement:null,enemyIndex:0,enemyQueue:[],undoHistory:[]};
   addLog(s,`${s.name}：9 支车辆编队完成部署。`,'good');
   addLog(s,'侦察车开路，工程车随队，火炮利用共享视野。');
   return s;
@@ -36,7 +46,7 @@ export function gameReducer(current,action) {
     const restored=structuredClone(history.at(-1));
     restored.undoHistory=history.slice(0,-1);
     restored.session=current.session+1;
-    restored.effect=null;
+    restored.effect=null;restored.movement=null;
     return restored;
   }
   const {undoHistory: history=[], ...withoutHistory}=current;
@@ -67,11 +77,12 @@ export function gameReducer(current,action) {
       s.inspectedId=target.id;
       if (s.turn!=='blue'||s.winner||!u||u.fired) return s;
     }
-    if (s.turn!=='blue'||s.winner) return current;
-    if (target?.team==='blue'&&s.mode!=='repair') {
+    if (target?.team==='blue'&&(s.mode!=='repair'||s.turn!=='blue'||s.winner)) {
       s.selectedId=target.id;s.inspectedId=null;s.mode='move';return s;
     }
+    if (s.turn!=='blue'||s.winner) return current;
     if (!u) { addLog(s,'请先选择一个我方单位。'); return s; }
+    const origin={x:u.x,y:u.y};
     let result;
     if (target?.team==='red'&&!s.fog[target.y][target.x]) result=attackUnit(s,u.id,target.id);
     else if (s.mode==='repair') result=repairUnit(s,u.id,target?.id);
@@ -79,7 +90,11 @@ export function gameReducer(current,action) {
     else result={ok:false,message:'请选择射程内可见的敌军；山林可能阻挡直射火力。'};
     addLog(s,result.message,result.ok?'good':'warn');
     if (result.damage||result.healed) effect(s,result,u.id);
-    if (result.ok) record=true;
+    if (result.ok) movement(s,u.id,origin,result.path,current.fog);
+    if (result.ok) {
+      record=true;
+      if (target?.team!=='red') s.inspectedId=null;
+    }
     if (result.ok&&s.mode==='repair') s.mode='move';
     if (result.ok&&result.path) s.mode='move';
     if (result.ok&&!s.winner&&s.units.filter(u=>u.team==='blue'&&u.hp>0).every(u=>u.moved)) {
@@ -92,9 +107,12 @@ export function gameReducer(current,action) {
     record=true;
   } else if (action.type==='ENEMY_STEP') {
     if (s.turn!=='red'||s.winner) return current;
+    s.movement=null;
     const id=s.enemyQueue[s.enemyIndex];
     if (id!==undefined) {
+      const actor=s.units.find(u=>u.id===id),origin=actor?{x:actor.x,y:actor.y}:null;
       const result=enemyAct(s,id);
+      if(result.ok)movement(s,id,origin,result.path,current.fog);
       if (result.damage) {
         const target=s.units.find(u=>u.id===result.targetId);
         addLog(s,`${result.message}，${target.name}受到 ${result.damage} 点伤害${target.hp<=0?'，单位损失':''}。`,'warn');effect(s,result,id);

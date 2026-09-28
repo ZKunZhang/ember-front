@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import UnitIcon from './UnitIcon.jsx';
 
 function UnitDetails({ unit, hostile = false }) {
@@ -30,53 +31,35 @@ function UnitDetails({ unit, hostile = false }) {
           <div key={label}><small>{label}</small><b>{value}</b></div>
         ))}
       </div>
-      <p className="unit-description">{unit.description}</p>
+      <details className="unit-description"><summary>兵种特性</summary><p>{unit.description}</p></details>
     </>
   );
 }
 
-function unitStatus(unit) {
-  if (unit.hp <= 0) return '已损失';
-  if (unit.moved && unit.fired) return '行动完毕';
-  if (unit.moved) return '已移动';
-  if (unit.fired) return '已行动';
-  return '待命';
-}
-
 export default function CommandPanel({ game, dispatch }) {
+  const [expanded, setExpanded] = useState(false);
   const selected = game.units.find(unit => unit.id === game.selectedId && unit.hp > 0);
   const locked = game.turn !== 'blue' || Boolean(game.winner);
   const enemy = game.units.find(unit => (
     unit.id === game.inspectedId && unit.team === 'red' && unit.hp > 0 && !game.fog[unit.y][unit.x]
   ));
-  const squad = game.units.filter(unit => unit.team === 'blue');
-  const survivors = squad.filter(unit => unit.hp > 0);
+  const inspected = enemy || selected;
+  const survivors = game.units.filter(unit => unit.team === 'blue' && unit.hp > 0);
   const movable = locked ? 0 : survivors.filter(unit => !unit.moved).length;
   const readyToFire = locked ? 0 : survivors.filter(unit => !unit.fired).length;
 
   return (
-    <aside aria-label="战场指挥">
-      <section className="phase-panel">
-        <div className="eyebrow">COMMAND PHASE <span>{String(game.turnNumber).padStart(2, '0')}</span></div>
-        <h2><span className="live-dot" />{game.winner ? '行动结束' : locked ? '敌方行动阶段' : '我方行动阶段'}</h2>
-        <div className="phase-readiness" aria-label="我方剩余行动机会">
-          <span><b>{String(movable).padStart(2, '0')}</b> 可移动</span>
-          <span><b>{String(readyToFire).padStart(2, '0')}</b> 可开火 / 维修</span>
-        </div>
-        <p>{locked && !game.winner
-          ? `侦听敌方动向 · ${game.enemyIndex} / ${game.enemyQueue.length}`
-          : '全员移动完自动结束回合；请在最后一次移动前完成开火或维修。'}</p>
-        <button className="primary" id="end-turn" disabled={locked} onClick={() => dispatch({ type: 'END_TURN' })}>
-          结束回合 <span>→</span>
-        </button>
-      </section>
-
-      <section className="unit-panel">
-        <div className="section-title">车辆情报 <span>{selected ? `UNIT ${String(selected.id).padStart(2, '0')}` : '待命'}</span></div>
-        {selected ? (
+    <aside className={`command-hud ${expanded ? 'is-expanded' : ''}`} aria-label="战场指挥">
+      <button className="command-toggle" aria-expanded={expanded} aria-controls="command-panels" onClick={() => setExpanded(value => !value)}>
+        <span>战场指挥 · {inspected ? `${enemy ? '敌方' : '我方'} · ${inspected.name}` : '待命'}</span><span>{expanded ? '收起 −' : '单位 / 指令 ＋'}</span>
+      </button>
+      <div className="command-panels" id="command-panels">
+      <section className={`unit-panel ${enemy ? 'hostile-panel' : ''}`} id={enemy ? 'enemy-intel' : undefined} data-unit={inspected?.id} aria-label="当前选中单位">
+        <div className="section-title">当前单位 <span>{inspected ? `${enemy ? 'HOSTILE' : 'UNIT'} ${String(inspected.id).padStart(2, '0')}` : '待命'}</span></div>
+        {inspected ? (
           <>
-            <UnitDetails unit={selected} />
-            <div className="modes">
+            <UnitDetails unit={inspected} hostile={Boolean(enemy)} />
+            {!enemy && <div className="modes">
               <button
                 id="move-mode"
                 className={game.mode === 'move' ? 'active' : ''}
@@ -100,47 +83,29 @@ export default function CommandPanel({ game, dispatch }) {
                   {game.mode === 'repair' ? '取消维修' : '✚ 维修'}
                 </button>
               )}
-            </div>
+            </div>}
           </>
         ) : (
-          <div className="empty-selection"><span>⌖</span>选择我方车辆以查看情报</div>
+          <div className="empty-selection"><span>⌖</span>点击战场中的我方或敌方车辆查看情报</div>
         )}
       </section>
 
-      <section className="squad-panel">
-        <div className="section-title">作战编队 <span>{survivors.length} / {squad.length} 在役</span></div>
-        <div id="squad">
-          {squad.map(unit => (
-            <button
-              key={unit.id}
-              className={`squad-row ${unit.id === selected?.id ? 'active' : ''} ${unit.hp <= 0 ? 'dead' : ''}`}
-              disabled={unit.hp <= 0 || locked}
-              aria-pressed={unit.id === selected?.id}
-              onClick={() => dispatch({ type: 'SELECT', id: unit.id })}
-              data-unit={unit.id}
-            >
-              <UnitIcon type={unit.type} team={unit.team} />
-              <span className="squad-identity">
-                <span className="squad-name">{String(unit.id).padStart(2, '0')} &nbsp; {unit.name}</span>
-                <span className="squad-health" aria-hidden="true">
-                  <span style={{ width: `${Math.max(0, unit.hp) / unit.maxHp * 100}%` }} />
-                </span>
-              </span>
-              <small className="squad-status">{unitStatus(unit)} · {Math.max(0, unit.hp)}</small>
-            </button>
-          ))}
+      <section className="phase-panel">
+        <div className="eyebrow">回合指挥 <span>{String(game.turnNumber).padStart(2, '0')}</span></div>
+        <h2><span className="live-dot" />{game.winner ? '行动结束' : locked ? '敌方行动阶段' : '我方行动阶段'}</h2>
+        <div className="phase-readiness" aria-label="我方剩余行动机会">
+          <span><b>{String(movable).padStart(2, '0')}</b> 可移动</span>
+          <span><b>{String(readyToFire).padStart(2, '0')}</b> 可开火 / 维修</span>
         </div>
+        {locked && !game.winner && <p>侦听敌方动向 · {game.enemyIndex} / {game.enemyQueue.length}</p>}
+        <details className="turn-note"><summary>回合规则</summary><p>全员移动完自动结束回合；请在最后一次移动前完成开火或维修。</p></details>
+        <button className="primary" id="end-turn" disabled={locked} onClick={() => dispatch({ type: 'END_TURN' })}>
+          结束回合 <span>→</span>
+        </button>
       </section>
 
-      {enemy && (
-        <section className="unit-panel hostile-panel" id="enemy-intel">
-          <div className="section-title">敌方车辆情报 <span>HOSTILE {String(enemy.id).padStart(2, '0')}</span></div>
-          <UnitDetails unit={enemy} hostile />
-        </section>
-      )}
-
-      <section className="log-panel">
-        <div className="section-title">战场通讯 <span className="live-label">● LIVE</span></div>
+      <details className="log-panel">
+        <summary className="section-title">战场通讯 <span className="live-label">展开战报 ＋</span></summary>
         <div id="log" aria-live="polite">
           {game.logs.map(log => (
             <div key={log.id} className={`log-entry ${log.kind}`}>
@@ -148,7 +113,8 @@ export default function CommandPanel({ game, dispatch }) {
             </div>
           ))}
         </div>
-      </section>
+      </details>
+      </div>
     </aside>
   );
 }

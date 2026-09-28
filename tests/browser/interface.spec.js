@@ -22,7 +22,7 @@ test('archive filters and search preserve deployment choices', async ({ page }) 
   await expect(page.locator('.mission-head h1')).toContainText('困难 · 炮击编组');
   await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBe(0);
   await expect(page.locator('.phase-readiness b')).toHaveText(['09', '09']);
-  await expect(page.locator('button[data-unit="1"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.unit-panel')).toHaveAttribute('data-unit', '1');
   expect(errors).toEqual([]);
 });
 
@@ -49,6 +49,15 @@ test('updated pages render without horizontal overflow at compact widths', async
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.getByTestId('deploy-mountain-pass').click();
     await expect(page.locator('#map')).toBeVisible();
+    const canvas = await page.locator('#map').boundingBox();
+    expect(canvas).toEqual({ x: 0, y: 0, width, height: 1000 });
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+    if (width <= 760) {
+      await page.locator('.command-toggle').click();
+      await expect(page.locator('#end-turn')).toBeVisible();
+      await page.locator('.command-toggle').click();
+      await expect(page.locator('#end-turn')).not.toBeVisible();
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: `test-results/battle-review-${width}.png` });
   }

@@ -505,3 +505,254 @@ header { background: linear-gradient(#232e27, #19211c); box-shadow: 0 3px 18px #
 .hp-fill, .squad-health > span { background: linear-gradient(90deg, #348ed1, #8ce4ff); }
 #enemy-intel .hp-fill { background: linear-gradient(90deg, #ba3836, #ff9870); }
 .modes button.active { border-color: #79b9db; color: #b8e9ff; background: #38637c40; }
+
+/* In-mission HUD: the canvas is the viewport, instruments float above it. */
+.game-shell { position: fixed; inset: 0; overflow: hidden; isolation: isolate; --hud: #142019e8; --hud-border: #a9c5b440; }
+.game-shell > header { position: absolute; z-index: 5; top: 16px; right: 18px; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.game-shell header .brand, .game-shell .header-middle { display: none; }
+.game-shell .icon-button { background: var(--hud); border-color: var(--hud-border); backdrop-filter: blur(16px); }
+.battle-screen { position: absolute; inset: 0; max-width: none; margin: 0; padding: 0; }
+.battle-screen > .battlefield { position: absolute; inset: 0; border: 0; border-radius: 0; box-shadow: none; }
+.battle-screen .canvas-wrap { position: absolute; inset: 0; height: 100%; }
+.battle-screen .map-caption { display: none; }
+.battle-screen .north { top: 100px; right: 324px; }
+.battle-screen .mission-head { position: absolute; z-index: 3; top: 16px; left: 20px; right: 310px; margin: 0; padding: 12px 18px; gap: 16px; flex-wrap: nowrap; background: var(--hud); border: 1px solid var(--hud-border); border-radius: 8px; backdrop-filter: blur(16px); box-shadow: 0 6px 24px #0003; }
+.battle-screen .mission-head h1 { margin: 4px 0 0; font-size: 21px; gap: 10px; letter-spacing: 1px; }
+.battle-screen .mission-head h1 span { font-size: 9px; }
+.battle-screen .mission-head .eyebrow { font-size: 8px; }
+.battle-screen .mission-stats { width: auto; padding: 0; border: 0; background: none; }
+.battle-screen .mission-stats > div { min-width: 72px; padding: 0 14px; }
+.battle-screen .mission-stats small { margin-bottom: 2px; font-size: 9px; }
+.battle-screen .mission-stats strong { font-size: 23px; }
+.objective-hud { position: absolute; z-index: 3; top: 116px; left: 20px; width: 260px; padding: 15px 17px; background: var(--hud); border: 1px solid var(--hud-border); border-left: 2px solid #b7c692; border-radius: 6px; backdrop-filter: blur(16px); max-height: calc(100% - 260px); overflow: auto; scrollbar-width: thin; }
+.objective-hud .eyebrow { font-size: 8px; }
+.objective-text { margin: 9px 0 12px; font-size: 13px; color: #e2e8d3; }
+.mission-intel summary { color: #a5b7aa; font-size: 10px; cursor: pointer; }
+.mission-intel > p { margin: 12px 0; color: var(--muted); font-size: 11px; }
+.objective-hud .route-brief { padding-bottom: 0; font-size: 10px; }
+.objective-hud .story-brief { display: block; background: none; border: 0; padding: 12px 0; margin: 0; }
+.objective-hud .story-brief h2 { font-size: 13px; }
+.objective-hud .mission-progress { border: 0; padding: 12px 0 0; }
+.command-hud { position: absolute; z-index: 4; top: 78px; bottom: 72px; right: 18px; width: 280px; display: block; }
+.command-panels { height: 100%; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #698575 transparent; display: flex; flex-direction: column; gap: 10px; padding: 0 3px 6px 0; }
+.command-panels > section { flex-shrink: 0; min-width: 0; padding: 14px; background: var(--hud); border: 1px solid var(--hud-border); border-radius: 8px; backdrop-filter: blur(16px); box-shadow: 0 6px 20px #0002; }
+.command-hud .section-title { margin-bottom: 10px; font-size: 11px; }
+.command-hud .phase-panel h2 { margin: 7px 0; font-size: 16px; }
+.command-hud .phase-readiness { margin: 9px 0; }
+.command-hud .phase-readiness > span { padding: 5px; gap: 5px; font-size: 9px; }
+.command-hud .phase-panel p { margin-bottom: 10px; font-size: 9px; }
+.command-hud .unit-description { font-size: 10px; margin-bottom: 10px; }
+.command-hud .hp-row { margin-top: 10px; }
+.command-hud .hp-track { margin-bottom: 12px; }
+.command-hud .squad-row { padding: 7px 5px; }
+.command-toggle { display: none; }
+.battle-screen .map-top { position: absolute; z-index: 2; left: 22px; bottom: 123px; min-height: 0; padding: 0; background: none; border: 0; pointer-events: none; text-shadow: 0 2px 4px #000; }
+.battle-screen .map-top > span:first-child { display: none; }
+.battle-screen .map-toolbar { position: absolute; z-index: 2; bottom: 34px; left: 20px; padding: 10px; gap: 8px; width: 386px; border: 1px solid var(--hud-border); border-radius: 8px; background: var(--hud); backdrop-filter: blur(16px); }
+.battle-screen .map-controls { gap: 4px; }
+.battle-screen .map-controls button { width: 32px; height: 34px; }
+.battle-screen .map-command-hint { font-size: 9px; }
+.battle-screen .map-bottom { position: absolute; z-index: 2; bottom: 8px; left: 22px; padding: 0; border: 0; background: none; pointer-events: none; }
+.battle-screen .map-tip { display: none; }
+.redeploy-hud { position: absolute; z-index: 4; right: 20px; bottom: 20px; padding: 9px 14px; background: var(--hud); font-size: 11px; border-color: var(--hud-border); }
+.battle-screen .result { z-index: 10; }
+@media (max-width: 1100px) {
+  .battle-screen .mission-head { right: 310px; padding: 10px 12px; }
+  .battle-screen .mission-head h1 { font-size: 18px; }
+  .battle-screen .mission-head .eyebrow { display: none; }
+  .battle-screen .mission-stats > div { min-width: 0; padding: 0 9px; }
+  .battle-screen .mission-stats strong { font-size: 18px; }
+  .objective-hud { top: 100px; width: 220px; }
+}
+@media (max-width: 760px) {
+  .game-shell > header { top: max(10px, env(safe-area-inset-top)); right: 10px; }
+  .game-shell .header-actions { gap: 5px; }
+  .game-shell .icon-button { min-height: 34px; padding: 5px 9px; }
+  .game-shell .icon-button span { display: none; }
+  .battle-screen .mission-head { top: max(10px, env(safe-area-inset-top)); left: 10px; right: 94px; padding: 8px 10px; display: block; }
+  .battle-screen .mission-head h1 { font-size: 16px; margin: 0; gap: 6px; }
+  .battle-screen .mission-head h1 span { padding: 1px 4px; font-size: 8px; }
+  .battle-screen .mission-stats { margin-top: 7px; }
+  .battle-screen .mission-stats > div { display: flex; align-items: baseline; gap: 5px; padding: 0 8px; }
+  .battle-screen .mission-stats > div:first-child { padding-left: 0; }
+  .battle-screen .mission-stats small { font-size: 8px; }
+  .battle-screen .mission-stats strong { font-size: 13px; }
+  .battle-screen .mission-stats em { font-size: 9px; }
+  .objective-hud { top: 104px; left: 10px; width: 190px; padding: 10px 12px; max-height: calc(100% - 300px); }
+  .objective-text { font-size: 11px; margin: 6px 0; }
+  .objective-hud .eyebrow { font-size: 7px; }
+  .battle-screen .north { top: 105px; right: 18px; }
+  .command-hud { top: auto; right: 10px; left: 10px; bottom: max(10px, env(safe-area-inset-bottom)); width: auto; max-height: 55%; background: var(--hud); border: 1px solid var(--hud-border); border-radius: 8px; overflow: hidden; backdrop-filter: blur(16px); }
+  .command-toggle { display: flex; justify-content: space-between; gap: 8px; width: 100%; padding: 12px; border: 0; font-size: 11px; }
+  .command-toggle > span:last-child { color: var(--muted); }
+  .command-panels { display: none; }
+  .command-hud.is-expanded { display: flex; flex-direction: column; }
+  .command-hud.is-expanded .command-panels { display: flex; min-height: 0; padding: 0 7px 7px; }
+  .command-panels > section { box-shadow: none; }
+  .battle-screen .map-toolbar { left: 10px; bottom: calc(66px + env(safe-area-inset-bottom)); width: min(386px, calc(100% - 20px)); padding: 8px; }
+  .battle-screen .map-top { left: 12px; bottom: calc(156px + env(safe-area-inset-bottom)); }
+  .battle-screen .map-bottom { display: none; }
+  .redeploy-hud { right: 10px; bottom: calc(158px + env(safe-area-inset-bottom)); padding: 6px 9px; font-size: 9px; }
+}
+
+/* Frontline instruments: charcoal steel, amber orders and clear team colors. */
+.game-shell {
+  --hud: #151c24ed;
+  --hud-border: #91a2ad30;
+  --text: #e5e5df;
+  --muted: #9aa6ac;
+  --accent: #dfb777;
+  --line: #7e909b35;
+  color: var(--text);
+}
+.game-shell button { border-radius: 3px; }
+.game-shell button:hover:not(:disabled) { background: #53677545; border-color: #a8b8bf80; }
+.game-shell .live-dot { background: #dfb777; box-shadow: 0 0 8px #dfb77745; }
+.game-shell .icon-button { color: #c5cbd0; border-radius: 3px; }
+.battle-screen .mission-head { background: none; border: 0; border-radius: 0; box-shadow: none; backdrop-filter: none; }
+.battle-screen .mission-head h1 { color: #f2eee5; letter-spacing: 2px; text-shadow: 0 2px 8px #0008; }
+.battle-screen .mission-head h1 span { border: 0; border-left: 1px solid #d9b67e55; padding-left: 10px; border-radius: 0; color: #bca88a; }
+.battle-screen .mission-head .eyebrow { color: #86949e; letter-spacing: 2px; }
+.battle-screen .mission-stats small { color: #99a7af; }
+.battle-screen .mission-stats strong { color: #eae5d9; }
+.battle-screen .mission-stats em { color: #778590; }
+#round { color: #edc384; }
+.objective-hud { background: linear-gradient(90deg,#151b2199,transparent); border: 0; border-radius: 0; box-shadow: none; backdrop-filter: none; text-shadow: 0 2px 6px #000; }
+.objective-hud .eyebrow { color: #dfa75e; letter-spacing: 1.6px; }
+.objective-text { color: #f0e4ce; font-weight: 600; line-height: 1.8; }
+.mission-intel summary { color: #95a3ad; }
+.command-panels { gap: 8px; scrollbar-color: #606773 transparent; }
+.command-panels > section, .command-panels > details { background: none; border: 0; border-radius: 0; box-shadow: none; backdrop-filter: none; }
+.command-hud .section-title { color: #c4cdd2; font-size: 10px; letter-spacing: 1.2px; border: 0; padding-bottom: 5px; }
+.command-hud .section-title > span { color: #798d9b; }
+.command-hud .phase-panel { border: 0; background: none; padding-top: 10px; }
+.command-hud .phase-panel .eyebrow { color: #bca785; }
+.command-hud .phase-panel h2 { color: #eee7d7; letter-spacing: 1px; }
+.command-hud .phase-panel p { color: #9da5a9; }
+.command-hud .phase-readiness > span { border: 0; padding: 4px 0; background: none; color: #a7adb0; }
+.command-hud .phase-readiness b { color: #d2dce1; font-size: 18px; }
+.game-shell .primary { border-radius: 2px; border: 1px solid #f3cd8b90; background: linear-gradient(110deg,#dfb779,#b98c52); color: #211c16; box-shadow: inset 0 1px #ffe4ae70,0 3px 10px #0003; text-shadow: none; letter-spacing: 1px; }
+.game-shell .primary:hover:not(:disabled) { background: linear-gradient(110deg,#f1ce94,#d3aa6a); border-color: #f4d29c; }
+.command-hud .unit-panel { border: 0; }
+.command-hud .unit-art { width: 80px; height: 58px; border: 0; background: none; filter: drop-shadow(0 6px 5px #0008); }
+.command-hud .unit-art .unit-icon { width: 76px; height: 52px; }
+.command-hud .unit-name { color: #e3e8e9; font-size: 15px; }
+.command-hud .unit-sub, .command-hud .hp-row { color: #92a3af; }
+.command-hud .hp-track { height: 5px; background: #0b121b; border-radius: 0; }
+.command-hud .hp-fill { background: linear-gradient(90deg,#5798ae,#9ad5df); }
+.command-hud .unit-stats small { color: #8d9ba5; }
+.command-hud .unit-stats b { color: #d9dfe1; }
+.command-hud .unit-description { margin: 12px 0 10px; color: #94a2ab; }
+.command-hud .unit-description summary { cursor: pointer; font-size: 10px; }
+.command-hud .unit-description p { margin: 7px 0 0; line-height: 1.8; }
+.command-hud .modes { gap: 5px; }
+.command-hud .modes button.active { background: #579cba1c; color: #aed4e2; border-color: #78b4cf66; }
+.command-hud .action-status { color: #b8b9b0; }
+.command-hud .squad-row { min-height: 40px; border-color: #7b8c9720; }
+.command-hud .squad-row.active { background: linear-gradient(90deg,#5a9cbd26,#5a9cbd05); box-shadow: inset 2px 0 #83bed7; }
+.command-hud .squad-row small { color: #8b9ba6; font-size: 8px; }
+.command-hud .squad-name { color: #c6cfd3; font-size: 10px; }
+.command-hud .squad-health { background: #4b56604d; }
+.command-hud .squad-health > span { background: #76abbc; }
+.command-hud #enemy-intel { border-top-color: #d17c60; }
+.command-hud .log-panel { flex-shrink: 0; min-height: 0; padding: 12px 14px; }
+.command-hud .log-panel summary { cursor: pointer; margin: 0; border: 0; padding: 0; }
+.command-hud .log-panel[open] summary { margin-bottom: 10px; }
+.command-hud .log-entry { color: #99a8b1; border-color: #74838c24; }
+.command-hud .log-entry time { color: #647e91; }
+.command-hud .log-entry.warn { color: #dca081; }
+.battle-screen .map-toolbar { background: none; border: 0; border-radius: 0; box-shadow: none; backdrop-filter: none; }
+.battle-screen .map-controls button { color: #bcc9d1; border-color: #8093a13d; background: #a1b0be08; }
+.battle-screen .map-command-hint { color: #99a8b3; }
+.battle-screen .coordinates { color: #d3c5ab; font-size: 10px; letter-spacing: 1px; }
+.battle-screen .legend { color: #b7bec0; text-shadow: 0 1px 4px #000; }
+.battle-screen .redeploy-hud { color: #a3afb7; border-radius: 3px; }
+.objective-hud .mission-progress strong { color: #e0bd84; }
+.objective-hud .mission-meter { background: #dfb77720; }
+.objective-hud .mission-meter > span { background: #d5ad71; }
+@media (max-width: 760px) {
+  .command-hud { border-radius: 3px; background: #151d26f2; }
+  .command-toggle { color: #dbd6ca; border-top: 2px solid #bfa171; }
+}
+
+/* Edge shading joins the instruments to the battlefield without boxed panels. */
+.battle-screen::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(180deg,#0b121bd9,transparent 145px),linear-gradient(0deg,#0b121bc4,transparent 155px); }
+.command-hud { top: auto; bottom: 76px; max-height: calc(100% - 176px); isolation: isolate; text-shadow: 0 2px 5px #0009; }
+.command-hud::before { content: ''; position: absolute; z-index: -1; pointer-events: none; inset: -40px -18px -30px -80px; background: radial-gradient(ellipse at 100% 55%,#0d151ded 15%,#0d151da6 55%,transparent 74%); }
+.command-panels { height: auto; max-height: calc(100dvh - 176px); gap: 0; }
+.command-hud .unit-panel { padding-bottom: 6px; }
+.command-hud .unit-header { gap: 8px; }
+.command-hud .unit-name { font-size: 18px; letter-spacing: 1px; }
+.command-hud .unit-sub { color: #b6c3ca; }
+.command-hud .section-title > span { color: #a5b4bd; }
+.command-hud .unit-stats > div { border: 0; }
+.command-hud .hp-track { height: 3px; background: #b6c7d225; }
+.command-hud .hp-row { color: #bac7ce; }
+.command-hud .modes button { border: 0; border-bottom: 1px solid #92c4d973; background: #7292a512; border-radius: 0; }
+.command-hud .modes button.active { background: #87b1c414; border-color: #acd9e9; }
+.command-hud .phase-panel > .eyebrow { display: none; }
+.command-hud .phase-panel h2 { font-size: 12px; font-weight: 500; margin-top: 0; }
+.command-hud .phase-readiness { margin: 5px 0; }
+.command-hud .phase-readiness b { font-size: 14px; }
+.command-hud .primary { margin-top: 10px; min-height: 40px; padding: 9px 13px; background: linear-gradient(90deg,#d3b078d9,#bc965c85); border: 0; border-left: 2px solid #f0d09b; box-shadow: none; }
+.turn-note { color: #9eabb3; font-size: 9px; }
+.turn-note summary { cursor: pointer; }
+.turn-note p { margin: 6px 0; }
+.game-shell .icon-button { background: #10182050; border-color: transparent; backdrop-filter: none; }
+.battle-screen .redeploy-hud { background: none; border-color: transparent; }
+.battle-screen .map-controls button { background: #111a225c; border-color: #bccbd129; }
+.battle-screen .undo-button { border-color: #dfb77740; background: #141c2352; }
+@media (max-width: 760px) {
+  .command-hud { bottom: max(10px, env(safe-area-inset-bottom)); max-height: 55%; border: 0; background: linear-gradient(0deg,#111a23f2,#111a23db); backdrop-filter: none; }
+  .command-hud::before { display: none; }
+  .command-toggle { border: 0; border-top: 1px solid #bea77e40; }
+  .command-panels { max-height: none; }
+  .command-hud.is-expanded .command-panels { padding-top: 7px; }
+  .command-hud .unit-name { font-size: 16px; }
+}
+.command-hud #enemy-intel .unit-art { background: none; border: 0; }
+.game-shell #choose-map span { display: inline; }
+@media (max-width: 760px) {
+  .game-shell #choose-map span { margin-left: 4px; font-size: 10px; }
+  .battle-screen .mission-head { right: 132px; }
+}
+
+/* Navigation left, mission centered, live information right. */
+.game-shell > header { left: 20px; right: 20px; top: 18px; height: 42px; pointer-events: none; }
+.game-shell .header-actions { display: contents; }
+.game-shell .header-actions button { position: absolute; top: 0; pointer-events: auto; }
+.game-shell #choose-map { left: 0; }
+.game-shell #help { left: 118px; }
+.game-shell #help span { display: none; }
+.battle-screen .mission-head { left: 50%; right: auto; top: 14px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 560px); padding: 4px 12px; text-align: center; }
+.battle-screen .mission-head h1 { display: block; font-size: 23px; margin: 3px 0 0; }
+.battle-screen .mission-head h1 span { display: block; border: 0; padding: 0; margin-top: 6px; font-size: 9px; font-weight: 400; letter-spacing: .5px; }
+.battle-screen .battle-status { position: absolute; z-index: 3; top: 20px; right: 20px; width: 278px; justify-content: space-between; margin: 0; text-shadow: 0 2px 5px #000; }
+.battle-screen .battle-status > div { min-width: 0; flex: 1; padding: 0 10px; }
+.battle-screen .battle-status strong { font-size: 21px; }
+.command-hud { top: 96px; bottom: auto; max-height: calc(100% - 170px); }
+.command-panels { max-height: calc(100dvh - 170px); }
+.objective-hud { top: 108px; }
+@media (max-width: 1100px) and (min-width: 761px) {
+  .battle-screen .mission-head h1 { font-size: 19px; }
+  .battle-screen .battle-status { width: 246px; }
+}
+@media (max-width: 760px) {
+  .game-shell > header { top: max(10px, env(safe-area-inset-top)); left: 10px; right: 10px; }
+  .game-shell #help { right: 0; left: auto; }
+  .battle-screen .mission-head { top: max(10px, env(safe-area-inset-top)); left: 50%; right: auto; max-width: calc(100% - 210px); padding: 0; }
+  .battle-screen .mission-head h1 { font-size: 15px; letter-spacing: .5px; }
+  .battle-screen .mission-head h1 span { font-size: 8px; margin-top: 3px; }
+  .battle-screen .battle-status { top: calc(74px + env(safe-area-inset-top)); left: 12px; right: 12px; width: auto; }
+  .battle-screen .battle-status > div { justify-content: center; }
+  .battle-screen .battle-status strong { font-size: 13px; }
+  .objective-hud { top: calc(112px + env(safe-area-inset-top)); }
+  .battle-screen .north { top: calc(118px + env(safe-area-inset-top)); }
+  .command-hud { top: auto; bottom: max(10px, env(safe-area-inset-bottom)); max-height: 55%; }
+  .command-panels { max-height: none; }
+}
+@media (min-width: 761px) {
+  .battle-screen .map-toolbar { left: 50%; transform: translateX(-50%); }
+}
+.fog-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.battle-screen .north { z-index: 1; }

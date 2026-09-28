@@ -161,7 +161,7 @@ function moveToRepair(s, u, target) {
   const choices = [...routes.values()].filter(path => distance(path.at(-1),target) === 1);
   const path = choose(s, choices, path => -path.length);
   if (path) Object.assign(u,path.at(-1));
-  return Boolean(path);
+  return path || null;
 }
 function retreat(s, u, enemies) {
   const current = threatAt(s,u,enemies), routes = reachable(s,u,u.move,false);
@@ -171,7 +171,7 @@ function retreat(s, u, enemies) {
     return -threatAt(s,point,enemies) * 100 + Math.min(...enemies.map(t => distance(point,t))) - path.length;
   });
   if (path) Object.assign(u,path.at(-1));
-  return Boolean(path);
+  return path || null;
 }
 
 // Search the whole connected map for firing positions. This allows moving away
@@ -180,6 +180,7 @@ export function enemyAct(s,id) {
   const u = s.units.find(u=>u.id===id);
   if (s.winner || s.turn!=='red' || !u || u.team!=='red' || u.hp<=0) return {ok:false};
   const origin = {x:u.x,y:u.y};
+  let path = [];
   const enemies = s.units.filter(t=>t.team==='blue'&&t.hp>0);
   const mode = getDifficulty(s.difficultyId).ai;
   if (!enemies.length) { checkOutcome(s); return {ok:false}; }
@@ -189,7 +190,9 @@ export function enemyAct(s,id) {
     let damaged = repairTarget(s,u,true);
     if (!damaged && mode === 'coordinated' && !u.moved) {
       const distant = repairTarget(s,u);
-      if (distant && moveToRepair(s,u,distant)) {
+      const approach = distant ? moveToRepair(s,u,distant) : null;
+      if (approach) {
+        path = approach;
         u.moved = true;
         updateFog(s);
         damaged = distance(distant,u)===1 ? distant : repairTarget(s,u,true);
@@ -198,10 +201,13 @@ export function enemyAct(s,id) {
     if (damaged) {
       const healed = Math.min(u.repair,damaged.maxHp-damaged.hp);
       damaged.hp += healed; u.fired = true;
-      return {ok:true,healed,targetId:damaged.id,hidden:s.fog[u.y][u.x],message:'敌方工程车维修友军'};
+      return {ok:true,path,healed,targetId:damaged.id,hidden:s.fog[u.y][u.x],message:'敌方工程车维修友军'};
     }
   }
-  if (mode === 'coordinated' && healthRatio(u) <= 0.4 && !u.moved && retreat(s,u,enemies)) u.moved = true;
+  if (mode === 'coordinated' && healthRatio(u) <= 0.4 && !u.moved) {
+    const escape = retreat(s,u,enemies);
+    if (escape) { path=escape;u.moved=true; }
+  }
   if (!targetsAt(u).length && !u.moved) {
     const routes = reachable(s,u,s.cols*s.rows,false);
     const firingPaths = [];
@@ -215,7 +221,7 @@ export function enemyAct(s,id) {
       const targetScore = mode === 'direct' ? 0 : targetValue(target) + (1 - healthRatio(target)) * 10 + (u.attack >= target.hp + target.armor ? 1000 : 0);
       return targetScore * 100 - candidate.path.length;
     });
-    if (best) Object.assign(u,best.path[Math.min(u.move,best.path.length)-1]);
+    if (best && u.move>0) { path=best.path.slice(0,u.move);Object.assign(u,path.at(-1)); }
     u.moved = true;
   }
   updateFog(s);
@@ -224,10 +230,10 @@ export function enemyAct(s,id) {
     const damage = damageFor(u,target);
     target.hp = Math.max(0,target.hp-damage); u.fired = true;
     updateFog(s); checkOutcome(s);
-    return {ok:true,damage,targetId:target.id,hidden,message:hidden?'遭到迷雾炮火':'敌军开火'};
+    return {ok:true,path,damage,targetId:target.id,hidden,message:hidden?'遭到迷雾炮火':'敌军开火'};
   }
   const moved = u.x!==origin.x || u.y!==origin.y;
-  return {ok:true,hidden,moved,message:moved?'敌方推进':'敌方待命'};
+  return {ok:true,path,hidden,moved,message:moved?'敌方推进':'敌方待命'};
 }
 export function checkOutcome(s) {
   if (s.winner) return s.winner;

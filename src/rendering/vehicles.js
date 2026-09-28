@@ -1,15 +1,21 @@
 const PALETTES = {
-  blue: { hull: '#638f80', roof: '#a9c4a1', slope: '#477563', side: '#315548', shade: '#203c35', edge: '#e1efc8', stripe: '#80d6e5', glass: '#15333d' },
+  blue: { hull: '#657c84', roof: '#a0adb0', slope: '#495e66', side: '#34464e', shade: '#243039', edge: '#d4d6cc', stripe: '#80d6e5', glass: '#15333d' },
   red: { hull: '#a4826b', roof: '#d3b292', slope: '#896951', side: '#674c40', shade: '#42332e', edge: '#f3dfba', stripe: '#ec7964', glass: '#2b3334' },
 };
 
 // Vehicle coordinates use a positive longitudinal axis toward the muzzle.
 // Projection places increasing world x lower on screen, so blue faces -x.
-export function drawVehicleModel(painter, unit) {
+export function drawVehicleModel(painter, unit, motion = null) {
   const { ctx, scale, p, polygon, line } = painter;
   const colors = PALETTES[unit.team] || PALETTES.blue;
   const direction = unit.team === 'blue' ? -1 : 1;
-  const q = (a, b, z = 0) => p(unit.x + .5 + a * direction, unit.y + .5 + b, z);
+  const heading=motion?.heading||unit.heading||{x:direction,y:0};
+  const q = (a, b, z = 0) => {
+    // Running gear stays grounded while the sprung hull heaves and pitches.
+    const suspension=motion?.active&&z>6.5?motion.bob+a*motion.pitch+b*motion.roll:0;
+    return p(unit.x+.5+a*heading.x-b*heading.y*direction,
+      unit.y+.5+a*heading.y+b*heading.x*direction,z+suspension);
+  };
   const plate = (points, fill, stroke, width) => polygon(points.map(point => q(...point)), fill, stroke, width);
   const seam = (a, b, color = colors.shade, width = .65) => line(q(...a), q(...b), color, width);
   const ring = (a, b, length, width, cut = .05) => [
@@ -53,6 +59,11 @@ export function drawVehicleModel(painter, unit) {
     const center = q(a, b, z);
     ctx.fillStyle = '#1b2923';ctx.beginPath();ctx.ellipse(center.x, center.y, radius * .6 * scale, radius * scale, 0, 0, Math.PI * 2);ctx.fill();
     ctx.fillStyle = '#6f7765';ctx.beginPath();ctx.ellipse(center.x, center.y, radius * .26 * scale, radius * .52 * scale, 0, 0, Math.PI * 2);ctx.fill();
+    if(motion?.active){
+      const angle=motion.trackPhase*Math.PI*2;
+      line({x:center.x-Math.cos(angle)*radius*.4*scale,y:center.y-Math.sin(angle)*radius*.75*scale},
+        {x:center.x+Math.cos(angle)*radius*.4*scale,y:center.y+Math.sin(angle)*radius*.75*scale},'#a1a995',.65);
+    }
   }
   function tracks(length = .88, width = .72) {
     for (const side of [-1, 1]) {
@@ -61,9 +72,9 @@ export function drawVehicleModel(painter, unit) {
       plate(tread.map(([a, y]) => [a, y, 2]), '#1e2924');
       plate(tread.map(([a, y]) => [a, y, 6]), '#39463b', '#202d25', .6);
       for (let i = 0; i < 7; i++) {
-        const a = -length / 2 + .07 + i * (length - .14) / 6;
+        const a = -length / 2 + .07 + ((i + (motion?.trackPhase || 0)) % 7) * (length - .14) / 7;
         seam([a, b + .015, 6.3], [a, b + .12, 6.3], '#85907a', .65);
-        wheel(a, side * width / 2, 3.1, 1.75);
+        wheel(-length/2+.07+i*(length-.14)/6, side * width / 2, 3.1, 1.75);
       }
       seam([-length / 2 + .06, side * width / 2, 1], [length / 2 - .06, side * width / 2, 1], '#18251e', 1.1);
     }

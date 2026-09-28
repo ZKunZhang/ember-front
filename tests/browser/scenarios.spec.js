@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import { selectMapUnit } from './unit-selection.js';
 
 test('new battlefields deploy their chosen difficulty and allied combination',async({page})=>{
   await page.goto('/');
@@ -11,14 +12,24 @@ test('new battlefields deploy their chosen difficulty and allied combination',as
     await page.getByTestId(`deploy-${id}`).click();
     await expect(page.locator('.mission-head h1')).toContainText(name);
     await expect(page.locator('.mission-head h1')).toContainText('困难');
-    await expect(page.locator('.squad-row')).toHaveCount(9);
-    for(const label of labels){
-      const [unit,count]=label.split(' × ');
-      await expect(page.locator('.squad-row').filter({hasText:unit})).toHaveCount(Number(count));
-    }
+    await expect(page.locator('#ally-count')).toHaveText('09 / 09');
+    await expect(page.locator('.squad-row')).toHaveCount(0);
+    const checkFormation = async () => {
+      const names = [];
+      for(let unitId=1;unitId<=9;unitId++) {
+        await selectMapUnit(page,unitId);
+        await expect(page.locator('.unit-panel')).toHaveAttribute('data-unit',String(unitId));
+        names.push(await page.locator('.unit-name').innerText());
+      }
+      for(const label of labels){
+        const [unit,count]=label.split(' × ');
+        expect(names.filter(name=>name.includes(unit))).toHaveLength(Number(count));
+      }
+    };
+    await checkFormation();
     await page.screenshot({path:`test-results/${id}.png`,fullPage:true});
     await page.locator('#reset').click();
-    for(const label of labels){const [unit,count]=label.split(' × ');await expect(page.locator('.squad-row').filter({hasText:unit})).toHaveCount(Number(count));}
+    await checkFormation();
     await page.locator('#choose-map').click();
   }
 });

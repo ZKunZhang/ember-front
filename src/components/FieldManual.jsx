@@ -31,7 +31,7 @@ export default function FieldManual({ open, onClose }) {
         <div className="manual-step">
           <span>01</span>
           <h3>选择车辆</h3>
-          <p>点击我方车辆或右侧编队，查看车辆情报与可用行动。</p>
+          <p>点击战场中的车辆，查看当前单位的情报；选中我方车辆后可执行行动。</p>
         </div>
         <div className="manual-step">
           <span>02</span>
@@ -73,7 +73,7 @@ export default function FieldManual({ open, onClose }) {
       <section className="manual-section">
         <h3>撤回与调整视角</h3>
         <p>误触后可点击棋盘下方「撤回」，逐步恢复移动、开火、维修或结束回合前的战局；敌方已行动也可撤回，最多保留最近 50 步，重新部署会清空记录。</p>
-        <p>沙盘从己方底部向前呈现，从桌边斜俯视战场。地图支持鼠标拖动、手机滑动和触控板双指横滑；也可用左右箭头平移，点击「重置视图」回到中心。</p>
+        <p>沙盘从己方底部向前呈现，从桌边斜俯视战场。地图支持鼠标拖动、手机滑动和触控板双指平移；触控板捏合、Ctrl+滚轮或加减按钮可缩放。也可用左右箭头平移，点击「重置视图」回到中心。</p>
       </section>
 
       <section className="manual-section">

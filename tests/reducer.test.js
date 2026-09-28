@@ -232,3 +232,30 @@ test('selected formation survives redeployment and changes with a new scenario',
   const changed=gameReducer(s,{type:'RESET',scenarioId:'forest-corridor'});
   assert.equal(changed.formationId,'mobile');
 });
+
+
+test('allied inspection can replace enemy intel during an enemy turn without taking actions',()=>{
+  const s=gameReducer(initialGame(),{type:'END_TURN'});
+  const red=s.units.find(u=>u.team==='red'),blue=s.units.find(u=>u.team==='blue');
+  s.fog[red.y][red.x]=false;
+  const enemy=gameReducer(s,{type:'CELL',x:red.x,y:red.y});
+  const ally=gameReducer(enemy,{type:'CELL',x:blue.x,y:blue.y});
+  assert.equal(ally.selectedId,blue.id);
+  assert.equal(ally.inspectedId,null);
+  assert.equal(ally.turn,'red');
+  assert.equal(ally.enemyIndex,s.enemyIndex);
+  assert.deepEqual(ally.units,s.units);
+  assert.deepEqual(ally.undoHistory,s.undoHistory);
+  assert.equal(gameReducer(ally,{type:'MODE',mode:'move'}),ally);
+});
+
+test('moving after inspecting an enemy returns the information panel to the acting ally',()=>{
+  const s=initialGame(),blue=s.units.find(u=>u.id===s.selectedId),red=s.units.find(u=>u.team==='red');
+  s.fog[red.y][red.x]=false;
+  const inspected=gameReducer(s,{type:'CELL',x:red.x,y:red.y});
+  const destination=reachable(inspected,blue).values().next().value.at(-1);
+  const moved=gameReducer(inspected,{type:'CELL',...destination});
+  assert.equal(moved.inspectedId,null);
+  assert.equal(moved.selectedId,blue.id);
+  assert.equal(moved.units.find(u=>u.id===blue.id).moved,true);
+});

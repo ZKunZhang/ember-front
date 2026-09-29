@@ -7,15 +7,16 @@ export default function StoryBrief({ game }) {
   const escorted = allies.some(unit => unit.type === 'engineer' && atDestination(unit));
   const captured = progress.captured?.filter(Boolean).length || 0;
   const heldTurns = progress.heldTurns || 0;
-  const completed = mission.kind === 'capture' ? captured : mission.kind === 'hold' ? heldTurns : Number(escorted);
+  const eliminated = mission.kind === 'hold' && game.winner === 'blue' && !game.units.some(unit => unit.team === 'red' && unit.hp > 0);
+  const completed = mission.kind === 'capture' ? captured : mission.kind === 'hold' ? (eliminated ? mission.turns : heldTurns) : Number(escorted);
   const required = mission.kind === 'capture' ? points.length : mission.kind === 'hold' ? mission.turns : 1;
   const status = mission.kind === 'capture'
     ? `接应进度 ${captured} / ${points.length}`
     : mission.kind === 'hold'
-      ? `坚守 ${heldTurns} / ${mission.turns} 回合 · ${held ? '驻守中' : '等待部队抵达'}`
+      ? eliminated ? '敌军已全歼 · 任务完成' : `坚守 ${heldTurns} / ${mission.turns} 回合 · ${held ? '驻守中' : '等待部队抵达'}`
       : '护送工程车抵达金色地格';
   const note = mission.kind === 'hold'
-    ? '敌方回合结束时结算；无人驻守则重新计数。'
+    ? '敌方回合结束时计数；无人驻守则重置。歼灭全部敌军可立即获胜。'
     : mission.kind === 'escort'
       ? '保护工程车；工程车全部损失则任务失败。'
       : '友军抵达后保留接应进度，无需同时占领。';

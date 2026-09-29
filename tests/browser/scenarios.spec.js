@@ -1,14 +1,16 @@
 import {test,expect} from '@playwright/test';
+import { FORMATIONS } from '../../src/game/scenarios.js';
+import { UNIT_TYPES } from '../../src/game/catalog.js';
 import { selectMapUnit } from './unit-selection.js';
 
 test('new battlefields deploy their chosen difficulty and allied combination',async({page})=>{
-  await page.goto('/');
+  await page.goto('/operations');
   for(const [id,name,formation] of [['forest-corridor','林海走廊','mobile'],['broken-basin','碎岩盆地','armored'],['lake-crossroads','环湖交锋','artillery']]){
-    const select=page.getByRole('combobox',{name:`${name}我方组合`});
-    await expect(select).toHaveValue(formation);
-    await page.getByRole('combobox',{name:`${name}难度`}).selectOption('hard');
+    const select=page.getByRole('combobox',{name:'我方组合'});
+    await expect(select).toHaveValue('recommended');
+    await page.getByRole('combobox',{name:'作战难度'}).selectOption('hard');
     await select.selectOption('artillery');
-    const labels=await page.locator(`[data-testid="deploy-${id}"]`).locator('..').locator('.formation-summary span').allTextContents();
+    const labels=Object.entries(UNIT_TYPES).map(([type,u])=>`${u.name} × ${FORMATIONS.artillery.types.filter(t=>t===type).length}`);
     await page.getByTestId(`deploy-${id}`).click();
     await expect(page.locator('.mission-head h1')).toContainText(name);
     await expect(page.locator('.mission-head h1')).toContainText('困难');
@@ -28,9 +30,9 @@ test('new battlefields deploy their chosen difficulty and allied combination',as
     };
     await checkFormation();
     await page.screenshot({path:`test-results/${id}.png`,fullPage:true});
-    await page.locator('#reset').click();
+    await page.locator('#battle-settings').click();await page.locator('#reset').click();
     await checkFormation();
-    await page.locator('#choose-map').click();
+    await page.locator('#battle-settings').click();await page.locator('#choose-map').click();
   }
 });
 
@@ -41,6 +43,7 @@ test('historical missions show narrative, objectives and source references',asyn
     ['ardennes-watch','坚守观察点4个敌方回合','坚守 0 / 4'],
   ]){
     await page.goto(`/battle/${id}`);
+    await page.getByText('任务简报与战术路线',{exact:true}).click();
     const story=page.getByRole('region',{name:'剧情任务'});
     await expect(story.getByRole('heading',{name:title})).toBeVisible();
     await expect(story).toContainText(progress);

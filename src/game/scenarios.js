@@ -30,9 +30,15 @@ export const SCENARIOS = [
     story: { chapter: '战史改编 · 02', history: '市场花园行动于1944年9月17日至25日试图夺取莱茵渡口但未达全部目标。', sourceUrl: 'https://www.nam.ac.uk/explore/market-garden', intro: '虚构的救援纵队必须护送工程车通过火线，把桥头交到友军手中。', success: '虚构的工程车抵达桥头，救援纵队为渡河部队恢复了通道。', failure: '虚构的桥头救援中断，工程车损毁后河谷再次落入封锁。' },
     mission: { kind: 'escort', point: { x: 11, y: 6, label: '北桥头' } } },
   { id: 'ardennes-watch', name: '阿登守望', subtitle: 'ARDENNES WATCH', direction: '由下向上推进', difficulty: '挑战', enemyCount: 18, formationId: 'armored',
-    briefing: '敌军在林地发动突袭，坚守高地观察点四个敌方回合，等待援军抵达。', objective: '坚守观察点4个敌方回合', routes: ['中央林道：最快抵达', '两侧坡线：便于交叉掩护'],
-    story: { chapter: '战史改编 · 03', history: '突出部战役于1944年12月由德国在阿登发动进攻。', sourceUrl: 'https://www.nps.gov/places/battle-of-the-bulge.htm', intro: '虚构的守军必须在雪林观察点坚守，直到援军穿过被突破的防线。', success: '虚构的守军守住观察点四个敌方回合，阿登防线等来了援军。', failure: '虚构的观察点失守，敌军的突袭撕开了雪林防线。' },
+    briefing: '敌军在林地发动突袭，坚守高地观察点四个敌方回合，等待援军抵达；歼灭全部敌军也可立即获胜。', objective: '坚守观察点4个敌方回合，或歼灭全部敌军', routes: ['中央林道：最快抵达', '两侧坡线：便于交叉掩护'],
+    story: { chapter: '战史改编 · 03', history: '突出部战役于1944年12月由德国在阿登发动进攻。', sourceUrl: 'https://www.nps.gov/places/battle-of-the-bulge.htm', intro: '虚构的守军必须在雪林观察点坚守，直到援军穿过被突破的防线。', success: '虚构的守军击退了林地攻势，阿登防线的威胁已经解除。', failure: '虚构的观察点失守，敌军的突袭撕开了雪林防线。' },
     mission: { kind: 'hold', point: { x: 15, y: 6, label: '林地观察点' }, turns: 4 } },
+  { id: 'iron-gorge', name: '铁壁峡口', subtitle: 'IRON GORGE', direction: '由下向上推进', difficulty: '进阶', enemyCount: 16, formationId: 'armored',
+    briefing: '三道石岭封锁峡口。重装编队沿错开的缺口逐段突破，也可从北缘公路迂回敌后。', objective: '歼灭全部敌军', routes: ['错位隘口：逐段推进，注意火力衔接', '北缘公路：绕过石岭，侧击敌后'] },
+  { id: 'reed-crossing', name: '苇河渡口', subtitle: 'REED CROSSING', direction: '由下向上推进', difficulty: '挑战', enemyCount: 18, formationId: 'mobile',
+    briefing: '两条水道夹住狭长河洲。争夺交错桥梁，在河洲重新集结后突破第二道防线。', objective: '歼灭全部敌军', routes: ['中部桥群：距离短，需分段掩护', '南侧长桥：路线宽，便于装甲展开'] },
+  { id: 'pine-highlands', name: '松岭猎场', subtitle: 'PINE HIGHLANDS', direction: '由下向上推进', difficulty: '标准', enemyCount: 14, formationId: 'artillery',
+    briefing: '松林与孤立岩峰遮蔽敌军。侦察车沿环形道路点亮视野，远程火力从林间空地压制守军。', objective: '歼灭全部敌军', routes: ['中央林间路：快速接敌，需先侦察', '外围环路：分散推进，建立交叉火力'] },
 ];
 const BLUE = [[17,3],[18,3],[19,3],[17,4],[18,4],[19,4],[17,5],[18,5],[19,5]];
 const RED_SOUTH = [[7,14],[8,14],[9,14],[7,15],[8,15],[9,15],[7,16],[8,16],[9,16],[6,14],[6,15],[6,16],[5,14],[5,15],[5,16],[6,13],[7,13],[8,13]];
@@ -80,6 +86,23 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
     horizontal(8, 5, 18, 3); horizontal(13, 5, 18, 3);
     vertical(18, 5, 13, 3); vertical(5, 8, 14, 3);
     landmarks = [{x:10,y:8,label:'中央裂口'}, {x:12,y:13,label:'东侧坡道'}];
+  } else if (meta.id === 'iron-gorge') {
+    for (const x of [8, 11, 14]) for (let y = 4; y <= 14; y++) put(x,y,1);
+    horizontal(3,5,18); horizontal(15,5,18);
+    horizontal(7,11,18); horizontal(10,8,14); horizontal(12,5,11);
+    vertical(5,3,15); vertical(18,3,15);
+    landmarks = [{x:14,y:7,label:'东隘口'},{x:8,y:12,label:'西隘口'},{x:11,y:3,label:'北缘公路'}];
+  } else if (meta.id === 'reed-crossing') {
+    for (let y=1;y<=16;y++) { put(10,y,4); put(14,y,4); }
+    horizontal(6,12,18); horizontal(9,5,12); horizontal(13,5,18);
+    vertical(12,6,13); vertical(5,6,14); vertical(18,5,13);
+    landmarks = [{x:14,y:6,label:'东岸桥'},{x:10,y:9,label:'西岸桥'},{x:12,y:13,label:'南侧长桥'}];
+  } else if (meta.id === 'pine-highlands') {
+    for (let y=5;y<=13;y+=3) for (let x=7;x<=15;x+=3) { put(x,y,2);put(x+1,y,2);put(x,y+1,2); }
+    [[9,8],[13,11],[10,5]].forEach(([x,y])=>put(x,y,1));
+    horizontal(4,5,18);horizontal(14,5,18);horizontal(9,5,18);
+    vertical(5,4,14);vertical(18,4,14);vertical(12,4,14);
+    landmarks = [{x:12,y:9,label:'林间空地'},{x:5,y:4,label:'外围环路'}];
   } else {
     for (let y = 6; y <= 12; y++) for (let x = 9; x <= 14; x++) {
       if ((x===9||x===14) && (y===6||y===12)) continue;

@@ -451,3 +451,105 @@ header { background: linear-gradient(#232e27, #19211c); box-shadow: 0 3px 18px #
 .hp-fill { background: linear-gradient(90deg, #348ed1, #8ce4ff); }
 #enemy-intel .hp-fill { background: linear-gradient(90deg, #ba3836, #ff9870); }
 .modes button.active { border-color: #79b9db; color: #b8e9ff; background: #38637c40; }
+
+/* Full-screen game title and separate operations archive. */
+.title-screen {
+  position: relative; isolation: isolate; width: 100%; max-width: none;
+  height: 100svh; min-height: 420px; margin: 0; padding: 0; overflow: hidden;
+  background: #171d19 url('/images/ember-front-title.png') center center / cover no-repeat;
+  text-align: center; color: #f0e6cc;
+}
+.title-screen::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, #090e1170, transparent 48%, #080e0ce0), radial-gradient(ellipse at 50% 22%, #10191438, transparent 65%);
+}
+.title-screen-heading { position: absolute; top: 10%; left: 16px; right: 16px; text-shadow: 0 3px 24px #000a; }
+.title-kicker { display: flex; justify-content: center; align-items: center; gap: 18px; font-size: 10px; letter-spacing: .35em; color: #d0cfb9; }
+.title-kicker span { width: 30px; height: 1px; background: #d0cfb966; }
+.title-screen h1 { margin: 16px 0 0; font-size: clamp(48px, 6.4vw, 92px); font-family: 'Songti SC', 'STSong', serif; font-weight: 800; letter-spacing: .22em; text-indent: .22em; line-height: 1.3; }
+.title-english { margin: 4px 0 18px; font: 16px/1.6 Georgia, serif; letter-spacing: .6em; text-indent: .6em; }
+.title-rule { display: flex; justify-content: center; align-items: center; gap: 16px; color: #c9b17c; font-size: 8px; }
+.title-rule span { width: 72px; height: 1px; background: #c9b17c88; }
+.title-tagline { font-size: 12px; letter-spacing: .3em; color: #ddd8c6; }
+.title-start { position: absolute; top: 76%; left: 16px; right: 16px; }
+.start-game { min-height: 62px; width: min(300px, 86vw); padding: 15px 28px; border: 1px solid #d8c798; background: linear-gradient(120deg, #b3a071ed, #e4d4a5f0, #b3a071ed); color: #25291f; font-size: 19px; font-weight: 600; letter-spacing: .3em; box-shadow: 0 0 0 5px #d9c99515, 0 10px 40px #0007, inset 0 1px #fff8; }
+.start-game span { margin-left: 28px; letter-spacing: 0; }
+.start-game:hover:not(:disabled) { background: #e9dbb5; border-color: #fff0c6; box-shadow: 0 0 0 5px #d9c99530, 0 0 36px #dfbd6440; }
+.start-game:focus-visible { outline-color: #f5dfaa; outline-offset: 8px; }
+.title-start p { margin-top: 22px; font-size: 10px; letter-spacing: .22em; color: #bdc0ae; }
+.title-footer { position: absolute; bottom: 18px; width: 100%; margin: 0; color: #8e998f; font: 9px/1.6 ui-monospace, monospace; letter-spacing: .15em; }
+.title-footer span { margin: 0 12px; color: #bda879; }
+.archive-navigation { display: flex; align-items: center; flex-wrap: wrap; gap: 20px; color: var(--muted); font-size: 11px; }
+.archive-navigation a { color: #c6d5cb; text-decoration: none; }
+.archive-navigation > span { margin-left: auto; }
+@media (max-width: 540px) {
+  .title-screen { background-position: 42% center; }
+  .title-screen-heading { top: 15%; }
+  .title-kicker { font-size: 7px; letter-spacing: .17em; }
+  .title-english { font-size: 12px; }
+  .title-tagline { font-size: 10px; }
+  .title-start { top: 72%; }
+}
+@media (max-height: 540px) and (min-width: 541px) {
+  .title-screen { min-height: 320px; }
+  .title-screen-heading { top: 5%; }
+  .title-screen h1 { font-size: 48px; margin-top: 5px; }
+  .title-english { margin-bottom: 8px; font-size: 12px; }
+  .title-tagline { display: none; }
+  .title-start { top: 66%; }
+  .start-game { min-height: 48px; padding: 10px 28px; }
+  .title-start p { margin-top: 12px; }
+  .title-footer { bottom: 8px; }
+}
+
+/* A continuous campaign map with directly playable operation markers. */
+.library-shell:has(.campaign-screen) > header { display: none; }
+.campaign-screen { max-width: 1800px; min-height: 100svh; margin: auto; padding: 26px 36px 28px; }
+.campaign-topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.campaign-back { padding: 0; border: 0; color: #b5c6b8; font-size: 11px; }
+.campaign-overline { margin-left: 24px; color: #829986; font: 9px ui-monospace, monospace; letter-spacing: 2px; }
+.campaign-topbar h1 { margin: 13px 0 0; font-size: 28px; font-weight: 500; letter-spacing: 3px; }
+.campaign-topbar h1 > span { margin-left: 20px; color: #8fa592; font-size: 10px; font-weight: 400; letter-spacing: 1px; }
+.campaign-layout { display: grid; grid-template-columns: minmax(0,1fr) 280px; gap: 22px; align-items: start; }
+.campaign-map-panel { position: relative; min-width: 0; border: 1px solid #5b6e56; background: #24372e; box-shadow: 0 12px 40px #0003; }
+.campaign-tools { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #62735e66; background: #17261fe8; }
+.campaign-tools .scenario-search { width: 160px; }
+.campaign-tools .scenario-filters button { padding: 7px 10px; }
+.campaign-map-scroll { overflow-x: auto; scrollbar-width: thin; scrollbar-color: #6f826b #24372e; }
+.campaign-map { position: relative; aspect-ratio: 10/7; min-width: 660px; isolation: isolate; }
+.campaign-terrain { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.campaign-map-caption { position: absolute; left: 20px; top: 16px; font-size: 9px; color: #c0c9ad88; letter-spacing: 2px; }
+.campaign-map-caption span { margin: 0 10px; }
+.campaign-node { position: absolute; transform: translate(-50%,-18px); display: flex; align-items: center; flex-direction: column; gap: 8px; width: 122px; padding: 0; border: 0; background: transparent; color: #dce6ce; z-index: 1; }
+.campaign-node:hover:not(:disabled), .campaign-node:focus-visible { background: transparent; z-index: 2; }
+.node-marker { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid #a8bfa0; border-radius: 50%; background: #283e31; box-shadow: 0 0 0 5px #a3b99615, 0 3px 10px #0005; font: 12px ui-monospace,monospace; transition: .18s; }
+.node-label { min-width: 102px; padding: 5px 9px; background: #14271ee6; border: 1px solid #89a07d44; border-radius: 2px; font-size: 12px; letter-spacing: 1px; text-shadow: 0 1px #000; }
+.node-label small { display: block; margin-top: 3px; color: #97ab91; font-size: 8px; letter-spacing: .5px; }
+.story-node .node-marker { color: #ecd8a0; border-color: #c5ab72; background: #49462d; }
+.story-node .node-label { color: #e6d7ad; border-color: #c5ab7244; }
+.story-node .node-label small { color: #bcaa7f; }
+.campaign-node:is(:hover,:focus-visible,.is-inspected) .node-marker { background: #b8c8a4; color: #223322; box-shadow: 0 0 0 6px #b8c8a430, 0 0 22px #b8c8a440; }
+.campaign-node:is(:hover,:focus-visible,.is-inspected) .node-label { border-color: #b8c8a4; background: #23392ef5; }
+.campaign-map-footer { display: flex; justify-content: space-between; gap: 12px; padding: 14px 18px; background: #17261f; color: #91a28d; font-size: 9px; border-top: 1px solid #62735e66; }
+.campaign-map-footer i { display: inline-block; width: 6px; height: 6px; background: #a8bfa0; border-radius: 50%; margin-right: 5px; }
+.campaign-map-footer i.gold { background: #c5ab72; margin-left: 12px; }
+.campaign-empty { position: absolute; top: 40%; left: 10%; right: 10%; text-align: center; background: #1c2c25ed; padding: 20px; border: 1px solid #526b51; }
+.campaign-empty h2 { font-size: 18px; }.campaign-empty button { padding: 10px 20px; }
+.campaign-brief { display: block; width: auto; border: 1px solid #445b49; background: #1d2a22; box-shadow: 0 12px 40px #0002; }
+.campaign-settings { padding: 20px; border-bottom: 1px solid #445b49; }.campaign-settings .eyebrow { font-size: 9px; }
+.campaign-settings .deployment-options { margin: 14px 0 0; grid-template-columns: .8fr 1.2fr; }.campaign-settings select { max-width: 100%; }
+.campaign-intel { padding: 0 20px 20px; }.campaign-intel > .eyebrow { margin-top: 19px; font-size: 9px; }.campaign-intel h2 { font-size: 25px; letter-spacing: 2px; font-weight: 500; margin: 7px 0 14px; }
+.campaign-preview { position: relative; margin: 0 -20px; background: #314737; border-bottom: 1px solid #445b49; }.campaign-preview .scenario-preview { height: 185px; }.campaign-preview > span { position: absolute; bottom: 10px; left: 14px; font: 8px ui-monospace,monospace; color: #b3c6aa; letter-spacing: 1px; }
+.campaign-description { font-size: 11px; color: #a6b9a4; line-height: 1.9; min-height: 64px; }.campaign-objective { border-left: 2px solid #b7b382; padding: 2px 0 2px 12px; font-size: 11px; color: #d0d2b5; }.campaign-objective > span { display: block; color: #849a83; font-size: 9px; margin-bottom: 4px; }
+.campaign-forces { display: flex; gap: 13px; align-items: center; margin: 22px 0; color: #829b86; font-size: 9px; }.campaign-forces b { color: #c6d8c5; font: 15px ui-monospace,monospace; }.campaign-forces span:last-child { margin-left: auto; }
+.campaign-intel > .primary { width: 100%; padding: 12px; font-size: 12px; }.campaign-intel > .primary span { margin-left: 10px; }.campaign-hint { display: block; margin-top: 13px; text-align: center; color: #819882; font-size: 9px; }
+@media (min-width: 1500px) { .campaign-layout { grid-template-columns: minmax(0,1fr) 310px; }.campaign-preview .scenario-preview { height: 220px; } }
+@media (max-width: 1100px) {
+  .campaign-screen { padding: 22px; }.campaign-layout { grid-template-columns: minmax(0,1fr) 240px; gap: 16px; }.campaign-settings { padding: 15px; }.campaign-intel { padding: 0 15px 15px; }.campaign-preview { margin: 0 -15px; }.campaign-tools { padding: 12px; }.campaign-tools .scenario-search { width: 120px; }.campaign-tools .scenario-filters button { font-size: 10px; padding: 7px; }
+}
+@media (max-width: 900px) {
+  .campaign-layout { grid-template-columns: 1fr; }.campaign-map { min-width: 660px; }.campaign-brief { display: grid; grid-template-columns: 230px 1fr; }.campaign-settings { border-bottom: 0; border-right: 1px solid #445b49; }.campaign-intel { padding: 18px; }.campaign-preview { display: none; }.campaign-intel > .eyebrow { margin: 0; }.campaign-description { min-height: 0; }.campaign-forces { margin: 14px 0; }.campaign-topbar h1 { font-size: 24px; }.campaign-map-footer { flex-wrap: wrap; }
+}
+@media (max-width: 540px) {
+  .campaign-screen { padding: 18px 12px; }.campaign-topbar { gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }.campaign-overline { font-size: 7px; margin-left: 13px; letter-spacing: 1px; }.campaign-topbar h1 { font-size: 22px; letter-spacing: 2px; }.campaign-topbar h1 > span { margin-left: 10px; font-size: 8px; letter-spacing: 0; }.campaign-tools .scenario-filters { width: auto; flex: 1; }.campaign-tools .scenario-search { width: 100%; }.campaign-brief { display: block; }.campaign-settings { border-right: 0; border-bottom: 1px solid #445b49; }.campaign-map-footer { font-size: 8px; gap: 8px; }.campaign-layout { gap: 14px; }
+}

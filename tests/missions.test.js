@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { initialGame, gameReducer } from '../src/game/reducer.js';
 import { UNIT_TYPES } from '../src/game/catalog.js';
 import { moveUnit, updateFog, updateMission, checkOutcome, beginPlayerTurn } from '../src/game/engine.js';
 
@@ -39,4 +40,35 @@ test('eliminating every enemy does not bypass an unfinished mission target',()=>
   const s=state({kind:'capture',points:[{x:3,y:3}]},[unit(1,'blue','tank',2,3),unit(2,'red','tank',6,6,{hp:0})]);
   checkOutcome(s);assert.equal(s.winner,null);
   assert.equal(moveUnit(s,1,3,3).ok,true);assert.equal(s.winner,'blue');
+});
+
+test('hold wins immediately when all enemies are destroyed, even away from its point',()=>{
+  const s=state({kind:'hold',point:{x:3,y:3},turns:4},[unit(1,'blue','tank',1,1),unit(2,'red','tank',6,6,{hp:0})]);
+  checkOutcome(s);assert.equal(s.winner,'blue');assert.equal(s.missionProgress.heldTurns,0);
+});
+
+test('hold cannot win while enemies survive or when all allied units are lost',()=>{
+  const s=state({kind:'hold',point:{x:3,y:3},turns:4},[unit(1,'blue','tank',1,1),unit(2,'red','tank',6,6)]);
+  checkOutcome(s);assert.equal(s.winner,null);
+  s.units.forEach(u=>u.hp=0);checkOutcome(s);assert.equal(s.winner,'red');
+});
+
+test('eliminating enemies still requires a surviving engineer to reach the escort target',()=>{
+  const s=state({kind:'escort',point:{x:3,y:3}},[unit(1,'blue','engineer',2,3),unit(2,'red','tank',6,6,{hp:0})]);
+  checkOutcome(s);assert.equal(s.winner,null);
+  moveUnit(s,1,3,3);assert.equal(s.winner,'blue');
+});
+
+
+test('Ardennes final shot settles immediately and undo restores the unfinished defense',()=>{
+  const s=initialGame('ardennes-watch');
+  const target=s.units.find(u=>u.team==='red');
+  for(const u of s.units.filter(u=>u.team==='red'))u.hp=0;
+  Object.assign(target,{x:16,y:3,hp:1});s.fog[3][16]=false;
+  const next=gameReducer(s,{type:'CELL',x:16,y:3});
+  assert.equal(next.winner,'blue');assert.equal(next.turn,'blue');
+  assert.equal(next.missionProgress.heldTurns,0);
+  const restored=gameReducer(next,{type:'UNDO'});
+  assert.equal(restored.winner,null);
+  assert.equal(restored.units.find(u=>u.id===target.id).hp,1);
 });

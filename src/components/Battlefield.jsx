@@ -5,13 +5,9 @@ export default function Battlefield({ game, onCell, onReset, onUndo }) {
   const {
     canvasRef,
     view,
-    camera,
     hover,
     hoveredUnit,
     dragging,
-    pan,
-    zoom,
-    resetCamera,
     pointerHandlers,
   } = useBattlefield(game, onCell);
   return (
@@ -72,44 +68,19 @@ export default function Battlefield({ game, onCell, onReset, onUndo }) {
       <div className="map-toolbar">
         <button
           id="undo"
+          aria-label="撤回"
           className="undo-button"
           disabled={!game.undoHistory?.length}
           onClick={onUndo}
           title="撤回上一次移动、开火、维修或结束回合"
         >
-          ↶ 撤回
+          <span aria-hidden="true">↶</span><small>撤回</small>
         </button>
-        <div className="map-controls">
-          <button
-            onClick={() => pan(-120)}
-            title="向左平移"
-            aria-label="向左平移"
-          >
-            ←
-          </button>
-          <button onClick={() => zoom(-0.2)} title="缩小" aria-label="缩小">
-            −
-          </button>
-          <span className="zoom-level" aria-label="当前缩放">
-            {Math.round(camera.zoom * 100)}%
-          </span>
-          <button onClick={resetCamera} title="重置视图" aria-label="重置视图">
-            ⌖
-          </button>
-          <button onClick={() => zoom(0.2)} title="放大" aria-label="放大">
-            ＋
-          </button>
-          <button
-            onClick={() => pan(120)}
-            title="向右平移"
-            aria-label="向右平移"
-          >
-            →
-          </button>
-        </div>
         <div className="map-command-hint">
           {game.turn === 'red'
             ? '敌方行动中…'
+            : game.mode === 'attack'
+              ? '攻击模式 · 点击射程内可见敌军'
             : game.mode === 'repair'
               ? '维修模式 · 点击相邻受损友军；点击敌军开火'
               : '点击蓝格移动 · 点击敌军开火并查看情报'}

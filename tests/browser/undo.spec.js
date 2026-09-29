@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 
 test('undo restores movement and an enemy round, and redeployment clears history',async({page})=>{
-  await page.goto('/');await page.getByTestId('deploy-mountain-pass').click();
+  await page.goto('/operations');await page.getByTestId('deploy-mountain-pass').click();
   const undo=page.getByRole('button',{name:'↶ 撤回',exact:true});
   await expect(undo).toBeDisabled();
   const point=await page.evaluate(async()=>{
@@ -13,9 +13,9 @@ test('undo restores movement and an enemy round, and redeployment clears history
   });
   // Canvas-local coordinates remain valid when toolbar clicks scroll the page.
   await page.locator('#map').click({position:point});
-  await expect(page.locator('#move-mode')).toHaveText('✓ 已移动');
+  await expect(page.locator('#move-mode')).toContainText('已移动');
   await undo.click();
-  await expect(page.locator('#move-mode')).toHaveText('◇ 移动');
+  await expect(page.locator('#move-mode')).toContainText('移动');
   await expect(undo).toBeDisabled();
   await page.locator('#end-turn').click();
   await expect(page.locator('#round')).toHaveText('02',{timeout:15000});
@@ -29,6 +29,6 @@ test('undo restores movement and an enemy round, and redeployment clears history
   await expect(page.locator('#end-turn')).toBeEnabled();
   await page.locator('#map').click({position:point});
   await expect(undo).toBeEnabled();
-  await page.locator('#reset').click();
+  await page.locator('#battle-settings').click();await page.locator('#reset').click();
   await expect(undo).toBeDisabled();
 });

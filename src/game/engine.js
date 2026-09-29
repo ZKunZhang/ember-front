@@ -245,7 +245,7 @@ export function checkOutcome(s) {
     const progress = s.missionProgress ?? { captured: [], heldTurns: 0 };
     if (mission.kind==='capture' && progress.captured.length===mission.points.length && progress.captured.every(Boolean)) s.winner='blue';
     else if (mission.kind==='escort' && blue.some(u=>u.type==='engineer'&&u.x===mission.point.x&&u.y===mission.point.y)) s.winner='blue';
-    else if (mission.kind==='hold' && progress.heldTurns>=mission.turns) s.winner='blue';
+    else if (mission.kind==='hold' && (progress.heldTurns>=mission.turns || !s.units.some(u=>u.team==='red'&&u.hp>0))) s.winner='blue';
   } else if (!s.units.some(u=>u.team==='red'&&u.hp>0)) s.winner='blue';
   return s.winner;
 }

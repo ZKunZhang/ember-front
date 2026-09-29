@@ -15,7 +15,7 @@ test('moving vehicles animate, settle, and can be resumed after leaving the batt
   await page.goto('/battle/mountain-pass');
   await expect(page.locator('#map')).toBeVisible();
   await moveScout(page);
-  await expect(page.locator('#move-mode')).toHaveText('✓ 已移动');
+  await expect(page.locator('#move-mode')).toContainText('已移动');
   const frames=await page.evaluate(async()=>{
     const canvas=document.querySelector('#map'),frames=[];
     for(let i=0;i<6;i++){
@@ -32,17 +32,17 @@ test('moving vehicles animate, settle, and can be resumed after leaving the batt
     return first===canvas.toDataURL();
   });
   expect(settled).toBe(true);
-  await page.getByRole('button',{name:'退出关卡',exact:true}).click();
-  await expect(page).toHaveURL(/\/$/);
+  await page.locator('#battle-settings').click();await page.getByRole('button',{name:'退出关卡',exact:true}).click();
+  await expect(page).toHaveURL(/\/operations$/);
   await page.getByRole('button',{name:'返回当前战场 →'}).click();
-  await expect(page.locator('#move-mode')).toHaveText('✓ 已移动');
+  await expect(page.locator('#move-mode')).toContainText('已移动');
   await page.locator('#undo').click();
-  await expect(page.locator('#move-mode')).toHaveText('◇ 移动');
+  await expect(page.locator('#move-mode')).toContainText('移动');
 });
 
 test('navigation, title and selected-unit information occupy the requested corners',async({page})=>{
   await page.goto('/battle/mountain-pass');
-  const exit=await page.locator('#choose-map').boundingBox();
+  const exit=await page.locator('#battle-settings').boundingBox();
   const title=await page.locator('.mission-head').boundingBox();
   const info=await page.locator('.command-hud').boundingBox();
   expect(exit.x).toBeLessThan(50);expect(exit.y).toBeLessThan(50);

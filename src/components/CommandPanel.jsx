@@ -46,20 +46,15 @@ function UnitDetails({ unit, hostile = false }) {
           </div>
         ))}
       </div>
-      <details className="unit-description">
-        <summary>兵种特性</summary>
-        <p>{unit.description}</p>
-      </details>
     </>
   );
 }
 
-export default function CommandPanel({ game, dispatch }) {
+export default function CommandPanel({ game }) {
   const [expanded, setExpanded] = useState(false);
   const selected = game.units.find(
     (unit) => unit.id === game.selectedId && unit.hp > 0,
   );
-  const locked = game.turn !== 'blue' || Boolean(game.winner);
   const enemy = game.units.find(
     (unit) =>
       unit.id === game.inspectedId &&
@@ -68,13 +63,6 @@ export default function CommandPanel({ game, dispatch }) {
       !game.fog[unit.y][unit.x],
   );
   const inspected = enemy || selected;
-  const survivors = game.units.filter(
-    (unit) => unit.team === 'blue' && unit.hp > 0,
-  );
-  const movable = locked ? 0 : survivors.filter((unit) => !unit.moved).length;
-  const readyToFire = locked
-    ? 0
-    : survivors.filter((unit) => !unit.fired).length;
 
   return (
     <aside
@@ -113,83 +101,13 @@ export default function CommandPanel({ game, dispatch }) {
           {inspected ? (
             <>
               <UnitDetails unit={inspected} hostile={Boolean(enemy)} />
-              {!enemy && (
-                <div className="modes">
-                  <button
-                    id="move-mode"
-                    className={game.mode === 'move' ? 'active' : ''}
-                    aria-pressed={game.mode === 'move'}
-                    disabled={locked || selected.moved}
-                    onClick={() => dispatch({ type: 'MODE', mode: 'move' })}
-                  >
-                    {selected.moved ? '✓ 已移动' : '◇ 移动'}
-                  </button>
-                  <span id="attack-status" className="action-status">
-                    {selected.fired ? '✓ 已行动' : '⌖ 点击敌军开火'}
-                  </span>
-                  {selected.repair > 0 && (
-                    <button
-                      id="repair-mode"
-                      className={game.mode === 'repair' ? 'active' : ''}
-                      aria-pressed={game.mode === 'repair'}
-                      disabled={
-                        locked || (selected.fired && game.mode !== 'repair')
-                      }
-                      onClick={() =>
-                        dispatch(
-                          game.mode === 'repair'
-                            ? { type: 'CANCEL_REPAIR' }
-                            : { type: 'MODE', mode: 'repair' },
-                        )
-                      }
-                    >
-                      {game.mode === 'repair' ? '取消维修' : '✚ 维修'}
-                    </button>
-                  )}
-                </div>
-              )}
+
             </>
           ) : (
             <div className="empty-selection">
               <span>⌖</span>点击战场中的我方或敌方车辆查看情报
             </div>
           )}
-        </section>
-
-        <section className="phase-panel">
-          <h2>
-            <span className="live-dot" />
-            {game.winner
-              ? '行动结束'
-              : locked
-                ? '敌方行动阶段'
-                : '我方行动阶段'}
-          </h2>
-          <div className="phase-readiness" aria-label="我方剩余行动机会">
-            <span>
-              <b>{String(movable).padStart(2, '0')}</b> 可移动
-            </span>
-            <span>
-              <b>{String(readyToFire).padStart(2, '0')}</b> 可开火 / 维修
-            </span>
-          </div>
-          {locked && !game.winner && (
-            <p>
-              侦听敌方动向 · {game.enemyIndex} / {game.enemyQueue.length}
-            </p>
-          )}
-          <details className="turn-note">
-            <summary>回合规则</summary>
-            <p>全员移动完自动结束回合；请在最后一次移动前完成开火或维修。</p>
-          </details>
-          <button
-            className="primary"
-            id="end-turn"
-            disabled={locked}
-            onClick={() => dispatch({ type: 'END_TURN' })}
-          >
-            结束回合 <span>→</span>
-          </button>
         </section>
 
         <details className="log-panel">

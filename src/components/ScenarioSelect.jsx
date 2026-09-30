@@ -3,8 +3,8 @@ import { SCENARIOS, FORMATIONS } from '../game/scenarios.js';
 import { DEFAULT_DIFFICULTY, DIFFICULTIES, enemyCountFor } from '../game/difficulty.js';
 import ScenarioPreview from './ScenarioPreview.jsx';
 
-const POSITIONS = [[20,24],[39,15],[62,28],[21,48],[43,40],[79,44],[19,75],[57,63],[76,78],[60,10],[81,20],[39,82]];
-const FILTERS = [['all','全部战区'],['standard','常规作战'],['story','战史行动']];
+const POSITIONS = [[15,23],[38,8],[61,23],[15,53],[38,38],[84,38],[15,68],[61,53],[84,68],[61,8],[84,8],[38,68],[15,8],[38,53],[84,53],[15,38],[84,23],[61,38],[61,68],[15,83],[38,83],[61,83],[84,83]];
+const FILTERS = [['all','全部战区'],['standard','常规作战'],['story','战史行动'],['crossing','穿越与护送']];
 
 function CampaignTerrain() {
   return <svg className="campaign-terrain" viewBox="0 0 1000 700" preserveAspectRatio="none" aria-hidden="true">
@@ -43,7 +43,7 @@ export default function ScenarioSelect({ onDeploy, onResume, hasBattle, onHome }
   const [filter,setFilter]=useState('all');
   const [search,setSearch]=useState('');
   const [inspected,setInspected]=useState(SCENARIOS[0].id);
-  const scenarios=SCENARIOS.filter(s=>(filter==='all'||Boolean(s.story)===(filter==='story'))&&`${s.name} ${s.subtitle} ${s.briefing}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const scenarios=SCENARIOS.filter(s=>(filter==='all'||(filter==='standard'?!s.story:filter==='crossing'?s.story&&!s.story.sourceUrl:Boolean(s.story?.sourceUrl)))&&`${s.name} ${s.subtitle} ${s.briefing}`.toLowerCase().includes(search.trim().toLowerCase()));
   const current=scenarios.find(s=>s.id===inspected)||scenarios[0];
   const formationFor=s=>formation==='recommended'?s.formationId:formation;
   return <main className="campaign-screen">
@@ -64,13 +64,13 @@ export default function ScenarioSelect({ onDeploy, onResume, hasBattle, onHome }
             {scenarios.map(s=>{
               const index=SCENARIOS.findIndex(item=>item.id===s.id),[x,y]=POSITIONS[index];
               return <button key={s.id} className={`campaign-node ${s.story?'story-node':''} ${current?.id===s.id?'is-inspected':''}`} style={{left:`${x}%`,top:`${y}%`}} data-testid={`deploy-${s.id}`} aria-label={`进入${s.name}`} onMouseEnter={()=>setInspected(s.id)} onFocus={()=>setInspected(s.id)} onClick={()=>onDeploy(s.id,difficulty,formationFor(s))}>
-                <span className="node-marker">{String(index+1).padStart(2,'0')}</span><span className="node-label">{s.name}<small>{s.story?'战史行动':'常规作战'}{index>=9?' · NEW':''}</small></span>
+                <span className="node-marker">{String(index+1).padStart(2,'0')}</span><span className="node-label">{s.name}<small>{s.mission?.kind==='breakthrough'?'穿越剧情':s.mission?.outposts?'护送剧情':s.story?'战史行动':'常规作战'}{index>=9?' · NEW':''}</small></span>
               </button>;
             })}
           </div>
         </div>
         {scenarios.length===0&&<div className="campaign-empty" role="status"><h2>未找到匹配的战区</h2><button onClick={()=>{setFilter('all');setSearch('');}}>重置筛选 →</button></div>}
-        <div className="campaign-map-footer"><span><i/> 常规作战 <i className="gold"/> 战史行动</span><span>点击据点进入战斗 · 窄屏可横向滑动地图</span></div>
+        <div className="campaign-map-footer"><span><i/> 常规作战 <i className="gold"/> 剧情行动</span><span>点击据点进入战斗 · 窄屏可横向滑动地图</span></div>
       </section>
       <aside className="campaign-brief" aria-label="部署与战区情报">
         <div className="campaign-settings"><div className="eyebrow">DEPLOYMENT / 部署设置</div><div className="deployment-options">

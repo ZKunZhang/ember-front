@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { SCENARIOS } from '../../src/game/scenarios.js';
 
 test('campaign filters and search preserve deployment choices', async ({ page }) => {
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
@@ -11,7 +12,7 @@ test('campaign filters and search preserve deployment choices', async ({ page })
   await page.getByRole('searchbox',{name:'搜索战区'}).fill('不存在的战区');
   await expect(page.getByRole('status')).toContainText('未找到匹配的战区');
   await page.getByRole('button',{name:'重置筛选'}).click();
-  await expect(page.locator('.campaign-node')).toHaveCount(12);
+  await expect(page.locator('.campaign-node')).toHaveCount(SCENARIOS.length);
   await expect(page.getByRole('combobox',{name:'作战难度'})).toHaveValue('hard');
   await page.getByRole('searchbox',{name:'搜索战区'}).fill('断脊');
   await expect(page.locator('.campaign-node')).toHaveCount(1);

@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import { SCENARIOS } from '../../src/game/scenarios.js';
 
 test('title leads to operations then battle, with reload and history support',async({page})=>{
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
@@ -12,9 +13,9 @@ test('title leads to operations then battle, with reload and history support',as
   expect(Math.abs(bounds.x+bounds.width/2-720)).toBeLessThan(2);
   await start.click();
   await expect(page).toHaveURL(/\/operations$/);
-  await expect(page.locator('.campaign-node')).toHaveCount(12);
+  await expect(page.locator('.campaign-node')).toHaveCount(SCENARIOS.length);
   await page.reload();
-  await expect(page.locator('.campaign-node')).toHaveCount(12);
+  await expect(page.locator('.campaign-node')).toHaveCount(SCENARIOS.length);
   await page.getByTestId('deploy-iron-gorge').click();
   await expect(page).toHaveURL(/\/battle\/iron-gorge\?/);
   await expect(page.locator('.mission-head h1')).toContainText('铁壁峡口');

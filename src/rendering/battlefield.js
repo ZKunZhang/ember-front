@@ -140,8 +140,14 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
   }
   const objectives=state.mission?.points||(state.mission?.point?[state.mission.point]:[]);
   for(const [index,point] of objectives.entries()){
-    const secured=state.missionProgress?.captured?.[index];
+    const secured=state.mission?.kind==='breakthrough'
+      ? state.units.some(u=>u.team==='blue'&&u.hp>0&&u.x===point.x&&u.y===point.y)
+      : state.missionProgress?.captured?.[index];
     marker(point.x,point.y,secured?'#bcecd0':'#ffe7a3',secured?'#a8deb92c':'#f9d5772c');
+  }
+  if(state.mission?.kind==='escort') {
+    const escort=state.units.find(u=>u.team==='blue'&&u.type==='engineer'&&u.hp>0);
+    if(escort)marker(escort.x,escort.y,'#ffe7a3','#f9d5772c');
   }
   // Ghost a planned route without querying or drawing unknown enemy positions.
   const route=hover&&moves.get(`${hover.x},${hover.y}`);

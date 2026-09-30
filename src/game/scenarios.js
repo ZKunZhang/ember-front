@@ -39,12 +39,47 @@ export const SCENARIOS = [
     briefing: '两条水道夹住狭长河洲。争夺交错桥梁，在河洲重新集结后突破第二道防线。', objective: '歼灭全部敌军', routes: ['中部桥群：距离短，需分段掩护', '南侧长桥：路线宽，便于装甲展开'] },
   { id: 'pine-highlands', name: '松岭猎场', subtitle: 'PINE HIGHLANDS', direction: '由下向上推进', difficulty: '标准', enemyCount: 14, formationId: 'artillery',
     briefing: '松林与孤立岩峰遮蔽敌军。侦察车沿环形道路点亮视野，远程火力从林间空地压制守军。', objective: '歼灭全部敌军', routes: ['中央林间路：快速接敌，需先侦察', '外围环路：分散推进，建立交叉火力'] },
+  { id: 'red-sand-loop', name: '赤沙回廊', subtitle: 'RED SAND LOOP', direction: '由下向上推进', difficulty: '标准', enemyCount: 14, formationId: 'mobile',
+    briefing: '两片岩台夹住中央回廊。机动部队可沿中路快速接敌，或借北侧环路绕到守军侧翼；岩台会遮挡直射火力。', objective: '歼灭全部敌军', routes: ['中央回廊：通道宽，快速切入', '北侧环路：绕过岩台，侧翼展开'] },
+  { id: 'stone-bay-bridges', name: '石湾三桥', subtitle: 'STONE BAY BRIDGES', direction: '由下向上推进', difficulty: '进阶', enemyCount: 16, formationId: 'balanced',
+    briefing: '横贯战区的水道仅有三座桥可供通行。选择宽阔的中央桥推进，或分兵两侧桥梁，避免全队挤在同一处桥头。', objective: '歼灭全部敌军', routes: ['中央宽桥：便于双列推进，注意桥头接应', '两翼窄桥：分散渡河，夹击南岸'] },
+  { id: 'sawtooth-line', name: '锯齿防线', subtitle: 'SAWTOOTH LINE', direction: '由下向上推进', difficulty: '挑战', enemyCount: 18, formationId: 'artillery',
+    briefing: '横向石岭的缺口交错分布，直线推进会被山体截断。侦察车寻找目标，炮兵越岭支援；也可沿东缘长路绕过防线。', objective: '歼灭全部敌军', routes: ['交错缺口：逐段转进，炮兵越障掩护', '东缘长路：绕行距离长，可避开中央瓶颈'] },
+  { id: 'mistwood-forks', name: '雾林岔路', subtitle: 'MISTWOOD FORKS', direction: '由下向上推进', difficulty: '标准', enemyCount: 14, formationId: 'balanced',
+    briefing: '三条林带将战场分割成多段走廊。沿中央林道侦察推进，或从南侧通道切入敌军阵地，避免远程单位脱离掩护。', objective: '歼灭全部敌军', routes: ['中央林道：穿过三处缺口，逐段侦察', '南侧通道：绕过林带，接近敌军侧翼'] },
+  { id: 'atoll-causeway', name: '环礁堤道', subtitle: 'ATOLL CAUSEWAY', direction: '由下向上推进', difficulty: '进阶', enemyCount: 16, formationId: 'mobile',
+    briefing: '中央湖泊围住一座小岛，东西堤道把岛屿接向两岸。可争夺岛心通路，也可沿湖泊南北两端绕行，从不同方向逼近敌军。', objective: '歼灭全部敌军', routes: ['岛心堤道：路线直接，通行空间有限', '南北环岸：绕湖展开，分散敌方火力'] },
+  { id: 'faultline-fortress', name: '断层要塞', subtitle: 'FAULTLINE FORTRESS', direction: '由下向上推进', difficulty: '挑战', enemyCount: 18, formationId: 'armored',
+    briefing: '两道折角岩墙包住敌军阵地，东面与北面各留有缺口。重装部队吸收正面火力，工程车随队维修，再穿过内墙压缩守军空间。', objective: '歼灭全部敌军', routes: ['东侧双隘：距离较短，集中装甲突破', '北侧双隘：迂回进入，形成侧翼火力'] },
+  { id: 'silent-transit', name: '静默穿越', subtitle: 'SILENT TRANSIT', direction: '穿越战场抵达撤离区', difficulty: '标准', enemyCount: 12, formationId: 'mobile',
+    briefing: '通讯中断后，先遣队必须带着侦察记录穿过林区。敌方哨兵分散守住岔路，选择交火或绕行，让至少三辆车抵达西南撤离区。', objective: '至少3辆存活友军同时抵达撤离区', routes: ['中央林道：路程短，沿途有警戒哨', '北侧迂回：路程长，可避开部分守军'],
+    story: { chapter: '穿越行动 · 01', intro: '先遣队截获了敌方调动情报，却与指挥部失去联系。主力交火声从远处传来，你的任务是带着记录穿过战场，在西南接应点会合。没有必要为每一片林地停留。', success: '三辆先遣车辆进入接应区，侦察记录随纵队送回了指挥部。', failure: '能够继续前进的车辆已不足三辆，先遣队无法完成此次接应。' },
+    mission: { kind: 'breakthrough', required: 3, points: [{x:3,y:14,label:'撤离位 A'},{x:4,y:14,label:'撤离位 B'},{x:3,y:15,label:'撤离位 C'},{x:4,y:15,label:'撤离位 D'}] } },
+  { id: 'river-escape', name: '渡河脱险', subtitle: 'RIVER ESCAPE', direction: '穿越战场抵达撤离区', difficulty: '进阶', enemyCount: 14, formationId: 'balanced',
+    briefing: '撤离路线被河流截断，两座桥分别通向沿岸道路。压制桥头守军后迅速通过，让至少三辆车在对岸接应区会合。', objective: '至少3辆存活友军同时抵达撤离区', routes: ['北桥：靠近出发区，过桥后沿西岸南下', '南桥：接近撤离区，东岸推进距离较长'],
+    story: { chapter: '穿越行动 · 02', intro: '前线后撤时，一支混编车队落在了河流东岸。接应队仍守在西南河湾，桥头却已出现敌方装甲。集中力量打开一处通路，把至少三辆车带到河湾。', success: '撤离车辆在河湾会合，桥头的交火被甩在身后。', failure: '河岸封锁使车队损失过重，已没有足够车辆抵达接应区。' },
+    mission: { kind: 'breakthrough', required: 3, points: [{x:3,y:14,label:'河湾接应 A'},{x:4,y:14,label:'河湾接应 B'},{x:3,y:15,label:'河湾接应 C'},{x:4,y:15,label:'河湾接应 D'}] } },
+  { id: 'last-convoy', name: '最后车队', subtitle: 'LAST CONVOY', direction: '穿越战场抵达撤离区', difficulty: '挑战', enemyCount: 16, formationId: 'armored',
+    briefing: '车队必须穿过两道山口封锁，敌军沿途分层驻守。用装甲掩护受损车辆，保持工程车的维修能力，至少三辆车抵达出口即可完成任务。', objective: '至少3辆存活友军同时抵达撤离区', routes: ['中央双隘：较短，容易连续遭遇敌军', '南侧山道：绕开首道山口，再向出口集结'],
+    story: { chapter: '穿越行动 · 03', intro: '最后一支后撤车队进入山间公路时，远处山口已经亮起敌军炮火。指挥部不再要求夺回阵地，只要求保存车辆穿过封锁。重装车辆断后，能走的车辆继续向出口前进。', success: '至少三辆车驶出山口，最后车队保住了继续作战的力量。', failure: '山口封锁切断了撤离纵队，能够驶向出口的车辆已不足三辆。' },
+    mission: { kind: 'breakthrough', required: 3, points: [{x:3,y:14,label:'山口出口 A'},{x:4,y:14,label:'山口出口 B'},{x:3,y:15,label:'山口出口 C'},{x:4,y:15,label:'山口出口 D'}] } },
+  { id: 'engineer-relay', name: '工兵接应', subtitle: 'ENGINEER RELAY', direction: '护送工程车穿越战场', difficulty: '进阶', enemyCount: 12, formationId: 'balanced',
+    briefing: '接应点急需工程保障力量。侦察车探查林道，坦克掩护工程车通过沿途哨卡，炮兵提供远程支援。工程车抵达西南接应点即胜利，被击毁则失败。', objective: '护送工程车抵达接应点，保护其存活', routes: ['中央道路：侦察开路，坦克先行清障', '南侧绕行：避开部分哨卡，工程车跟随掩护'],
+    story: { chapter: '护送行动 · 01', intro: '西南接应点缺少车辆抢修力量，一辆工程保障车被编入护送队。侦察、装甲与炮兵各司其职：先确认道路，再掩护保障车辆通过。任务只要求把工程车送到目的地。', success: '工程车安全抵达接应点，抢修分队终于获得了急需的保障力量。', failure: '工程车在途中被击毁，护送行动失败，接应点仍在等待保障力量。' },
+    mission: { kind: 'escort', outposts: true, point: {x:3,y:14,label:'工程保障接应点'} } },
+  { id: 'valley-lifeline', name: '峡谷生命线', subtitle: 'VALLEY LIFELINE', direction: '护送工程车穿越战场', difficulty: '挑战', enemyCount: 16, formationId: 'armored',
+    briefing: '工程保障车必须穿过河谷到达前方维修站。用装甲车辆掩护过桥，再由侦察单位确认出口；不要让工程车单独接敌。目标车损失立即失败。', objective: '护送工程车抵达维修站，保护其存活', routes: ['北桥通道：较早渡河，沿西岸推进', '南桥通道：依托东岸掩护，靠近终点渡河'],
+    story: { chapter: '护送行动 · 02', intro: '前方维修站即将停止运转，最后一辆工程保障车正在赶往河谷。桥头与谷口分别有敌军驻守，护送队必须用装甲部队打开通路，并给工程车留下通过空间。', success: '工程车驶入维修站，河谷中的保障线路重新接通。', failure: '目标工程车被击毁，维修站失去了此次保障接应。' },
+    mission: { kind: 'escort', outposts: true, point: {x:3,y:14,label:'河谷维修站'} } },
 ];
 const BLUE = [[17,3],[18,3],[19,3],[17,4],[18,4],[19,4],[17,5],[18,5],[19,5]];
 const RED_SOUTH = [[7,14],[8,14],[9,14],[7,15],[8,15],[9,15],[7,16],[8,16],[9,16],[6,14],[6,15],[6,16],[5,14],[5,15],[5,16],[6,13],[7,13],[8,13]];
 const RED_NORTH = [[2,5],[3,5],[4,5],[2,6],[3,6],[4,6],[2,7],[3,7],[4,7],[5,5],[5,6],[5,7],[6,5],[6,6],[6,7],[2,8]];
 const TYPES = BLUE_FORMATION;
 const RED_TYPES = [...TYPES, 'tank','heavyTank','artillery','rocket','scout','engineer','tank','artillery','heavyTank'];
+// Interleave the route's three outposts so easier settings retain encounters throughout the crossing.
+const CROSSING_PATROLS = [[14,7],[8,10],[5,13],[15,8],[7,11],[6,14],[13,6],[8,12],[5,15],[15,9],[6,10],[7,14],[13,8],[7,12],[6,15],[14,10]];
+const PATROL_TYPES = ['scout','tank','tank','tank','scout','heavyTank','tank','artillery','engineer','scout','tank','artillery','tank','heavyTank','artillery','tank'];
 
 export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFFICULTY, formationId) {
   const meta = SCENARIOS.find(s => s.id === id) || SCENARIOS[0];
@@ -103,6 +138,66 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
     horizontal(4,5,18);horizontal(14,5,18);horizontal(9,5,18);
     vertical(5,4,14);vertical(18,4,14);vertical(12,4,14);
     landmarks = [{x:12,y:9,label:'林间空地'},{x:5,y:4,label:'外围环路'}];
+  } else if (meta.id === 'red-sand-loop') {
+    for (let y = 5; y <= 7; y++) horizontal(y, 9, 14, 1);
+    for (let y = 11; y <= 13; y++) horizontal(y, 9, 14, 1);
+    horizontal(3, 5, 18); horizontal(9, 5, 18); horizontal(15, 5, 18);
+    vertical(5, 3, 15); vertical(18, 3, 15);
+    landmarks = [{x:12,y:9,label:'中央回廊'},{x:12,y:3,label:'北侧环路'}];
+  } else if (meta.id === 'stone-bay-bridges') {
+    horizontal(9, 1, 20, 4); horizontal(10, 1, 20, 4);
+    horizontal(7, 5, 18); horizontal(12, 5, 18);
+    for (const x of [5, 11, 12, 18]) vertical(x, 7, 12);
+    vertical(18, 5, 7); vertical(5, 12, 14);
+    [[8,6],[9,6],[14,12],[15,12],[7,11]].forEach(([x,y])=>put(x,y,1));
+    landmarks = [{x:5,y:9,label:'西侧窄桥'},{x:11,y:9,label:'中央宽桥'},{x:18,y:9,label:'东侧窄桥'}];
+  } else if (meta.id === 'sawtooth-line') {
+    for (const y of [6, 9, 12]) horizontal(y, 1, 17, 1);
+    vertical(14, 5, 8); horizontal(8, 8, 14);
+    vertical(8, 8, 11); horizontal(11, 8, 13); vertical(13, 11, 14);
+    horizontal(4, 5, 19); vertical(19, 4, 14); horizontal(14, 10, 19);
+    landmarks = [{x:14,y:6,label:'前沿缺口'},{x:8,y:9,label:'折返隘口'},{x:13,y:12,label:'后沿缺口'},{x:19,y:10,label:'东缘长路'}];
+  } else if (meta.id === 'mistwood-forks') {
+    for (const x of [8, 11, 14]) for (let y = 4; y <= 12; y++) {
+      put(x, y, 2); put(x + 1, y, 2);
+    }
+    horizontal(7, 5, 18); horizontal(13, 5, 18);
+    vertical(5, 5, 14); vertical(18, 5, 13); vertical(10, 7, 13);
+    landmarks = [{x:11,y:7,label:'中央林道'},{x:11,y:13,label:'南侧通道'}];
+  } else if (meta.id === 'atoll-causeway') {
+    for (let y = 5; y <= 13; y++) horizontal(y, 8, 15, 4);
+    for (let y = 8; y <= 10; y++) horizontal(y, 11, 12, 0);
+    horizontal(9, 6, 18); horizontal(3, 6, 18); horizontal(15, 6, 18);
+    vertical(6, 3, 15); vertical(18, 3, 15);
+    landmarks = [{x:11,y:9,label:'岛心通路'},{x:12,y:3,label:'北侧环岸'},{x:12,y:15,label:'南侧环岸'}];
+  } else if (meta.id === 'faultline-fortress') {
+    horizontal(7, 1, 14, 1); vertical(14, 7, 16, 1);
+    horizontal(11, 1, 10, 1); vertical(10, 11, 16, 1);
+    horizontal(13, 8, 18); vertical(5, 5, 14);
+    horizontal(5, 5, 18); vertical(18, 5, 13);
+    landmarks = [{x:14,y:13,label:'外墙东隘'},{x:10,y:13,label:'内墙东隘'},{x:5,y:7,label:'北侧外隘'},{x:5,y:11,label:'北侧内隘'}];
+  } else if (meta.id === 'silent-transit' || meta.id === 'engineer-relay') {
+    for (const x of [7, 11, 15]) for (let y = 5; y <= 13; y++) put(x, y, 2);
+    horizontal(3, 3, 18); horizontal(8, 3, 18); horizontal(14, 3, 18);
+    vertical(3, 3, 15); vertical(18, 3, 14);
+    if (meta.id === 'engineer-relay') {
+      horizontal(11, 3, 18); horizontal(5, 9, 13, 1); vertical(5, 8, 14);
+    }
+    landmarks = [{x:11,y:8,label:'林间岔路'},{x:8,y:3,label:'北侧迂回'}];
+  } else if (meta.id === 'river-escape' || meta.id === 'valley-lifeline') {
+    for (let y = 1; y <= 16; y++) horizontal(y, 10, 11, 4);
+    horizontal(6, 3, 18); horizontal(12, 3, 18);
+    vertical(3, 6, 15); vertical(18, 4, 12);
+    if (meta.id === 'valley-lifeline') {
+      for (let y = 4; y <= 13; y++) { put(7,y,1); put(15,y,1); }
+      horizontal(6,3,18); horizontal(12,3,18); horizontal(14,3,18);
+    }
+    landmarks = [{x:10,y:6,label:'北桥哨卡'},{x:10,y:12,label:'南桥哨卡'}];
+  } else if (meta.id === 'last-convoy') {
+    for (let y = 1; y <= 13; y++) { put(12, y, 1); put(9, y, 1); }
+    horizontal(7, 10, 18); vertical(10, 7, 11); horizontal(11, 3, 10);
+    horizontal(14, 3, 18); vertical(18, 5, 14); vertical(3, 11, 15);
+    landmarks = [{x:12,y:7,label:'第一封锁线'},{x:9,y:11,label:'第二封锁线'},{x:12,y:14,label:'南侧山道'}];
   } else {
     for (let y = 6; y <= 12; y++) for (let x = 9; x <= 14; x++) {
       if ((x===9||x===14) && (y===6||y===12)) continue;
@@ -129,9 +224,10 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
     if (terrain[y]?.[x] === 0) put(x, y, 2);
   });
   for(const point of meta.mission?.points||(meta.mission?.point?[meta.mission.point]:[])) put(point.x,point.y,3);
-  const red = (meta.id === 'diagonal-valley' ? RED_NORTH : RED_SOUTH).slice(0, enemyCount);
+  const outposts = meta.mission?.kind === 'breakthrough' || meta.mission?.outposts;
+  const red = (outposts ? CROSSING_PATROLS : meta.id === 'diagonal-valley' ? RED_NORTH : RED_SOUTH).slice(0, enemyCount);
   const deployments = [...BLUE.map(([x,y],i)=>({team:'blue',type:formation.types[i],x,y})),
-    ...red.map(([x,y],i)=>({team:'red',type:RED_TYPES[i],x,y}))];
+    ...red.map(([x,y],i)=>({team:'red',type:(outposts ? PATROL_TYPES : RED_TYPES)[i],x,y}))];
   for (const {x,y} of deployments) put(x,y,0);
   return { ...meta, formationId: Object.entries(FORMATIONS).find(([,f])=>f===formation)?.[0] ?? meta.formationId, formationName: formation.name, difficultyId: difficulty.id, difficulty: difficulty.label, enemyCount, cols, rows, terrain, deployments, landmarks };
 }

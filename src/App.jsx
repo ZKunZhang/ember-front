@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { useGame } from './hooks/useGame.js';
 import { readRoute, battleUrl } from './game/routes.js';
+import { breakthroughArrivals } from './game/engine.js';
 import ScenarioSelect from './components/ScenarioSelect.jsx';
 import Battlefield from './components/Battlefield.jsx';
 import UnitActions from './components/UnitActions.jsx';
@@ -51,6 +52,7 @@ export default function App() {
   const allies=game.units.filter(u=>u.team==='blue'),enemies=game.units.filter(u=>u.team==='red');
   const locked=game.turn!=='blue'||Boolean(game.winner);
   const living=allies.filter(u=>u.hp>0);
+  const escort=allies.find(u=>u.type==='engineer');
   return <div className={screen==='battle'?'game-shell':'library-shell'}>
     <header><div className="header-actions"><button className="icon-button" id="battle-settings" onClick={()=>setSettings(true)} aria-label="战斗设置" title="战斗设置">⚙</button></div></header>
     {screen==='library'?<ScenarioSelect onHome={()=>navigate(null,'home')} onDeploy={deploy} hasBattle={hasBattle} onResume={resume}/>:<main className="battle-screen">
@@ -60,14 +62,14 @@ export default function App() {
       </section>
       <section className="mission-stats battle-status" aria-label="战况概览">
         <div><small>我方编队</small><strong id="ally-count">{String(allies.filter(u=>u.hp>0).length).padStart(2,'0')} <em>/ {String(allies.length).padStart(2,'0')}</em></strong></div>
-        <div><small>歼敌进度</small><strong id="kill-count">{String(enemies.filter(u=>u.hp<=0).length).padStart(2,'0')} <em>/ {enemies.length}</em></strong></div>
+        <div><small>{game.mission?'已击毁敌军':'歼敌进度'}</small><strong id="kill-count">{String(enemies.filter(u=>u.hp<=0).length).padStart(2,'0')} <em>/ {enemies.length}</em></strong></div>
         <div><small>当前回合</small><strong id="round">{String(game.turnNumber).padStart(2,'0')}</strong></div>
         <div className="phase-readiness" aria-label="我方剩余行动机会"><span><b>{String(locked?0:living.filter(u=>!u.moved).length).padStart(2,'0')}</b> 可移动</span><span><b>{String(locked?0:living.filter(u=>!u.fired).length).padStart(2,'0')}</b> 可开火 / 维修</span></div>
         <p className="turn-phase" aria-live="polite">{game.winner?'行动结束':locked?`敌方行动 · ${game.enemyIndex} / ${game.enemyQueue.length}`:'我方行动阶段'}</p>
       </section>
       <section className="objective-hud" aria-label="作战目标">
         <p className="objective-text"><span>任务</span>{game.objective}</p>
-        {game.mission&&<p className="objective-progress" aria-live="polite">{game.winner==='blue'?'任务已完成':game.winner==='red'?'任务失败':game.mission.kind==='hold'?`坚守进度 ${game.missionProgress?.heldTurns||0} / ${game.mission.turns} 回合`:game.mission.kind==='capture'?`占领进度 ${game.missionProgress?.captured?.filter(Boolean).length||0} / ${game.mission.points.length}`:'护送进度：等待工程车抵达目标'}</p>}
+        {game.mission&&<p className="objective-progress" aria-live="polite">{game.winner==='blue'?'任务已完成':game.winner==='red'?'任务失败':game.mission.kind==='breakthrough'?`抵达撤离区 ${breakthroughArrivals(game).length} / ${game.mission.required} 辆 · 无需全歼敌军`:game.mission.kind==='hold'?`坚守进度 ${game.missionProgress?.heldTurns||0} / ${game.mission.turns} 回合`:game.mission.kind==='capture'?`占领进度 ${game.missionProgress?.captured?.filter(Boolean).length||0} / ${game.mission.points.length}`:`护送目标：工程车 ${String(escort?.id).padStart(2,'0')} · 生命 ${escort?.hp ?? 0} / ${escort?.maxHp ?? 0} · 抵达金色目标格`}</p>}
         <details className="mission-intel">
           <summary>任务简报与战术路线</summary>
           <p>{game.briefing}</p>

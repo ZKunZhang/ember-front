@@ -107,6 +107,7 @@ export function attackUnit(s,id,targetId) {
   if (!clearShot(s,u,t)) return fail('山林阻挡直射火力，请调整位置');
   const damage = damageFor(u,t);
   t.hp = Math.max(0,t.hp-damage); u.fired = true;
+  if (s.mission?.kind==='breakthrough' || s.mission?.outposts) t.alerted=true;
   updateFog(s); checkOutcome(s);
   return {ok:true,message:`命中${t.name}，造成 ${damage} 点伤害${t.hp===0?'，目标已击毁':''}`,damage,targetId:t.id};
 }
@@ -184,6 +185,11 @@ export function enemyAct(s,id) {
   const enemies = s.units.filter(t=>t.team==='blue'&&t.hp>0);
   const mode = getDifficulty(s.difficultyId).ai;
   if (!enemies.length) { checkOutcome(s); return {ok:false}; }
+  // Crossing patrols stay at their posts until approached or fired upon.
+  if ((s.mission?.kind==='breakthrough' || s.mission?.outposts) && !u.alerted) {
+    u.alerted = u.hp < u.maxHp || enemies.some(t=>distance(u,t)<=u.vision);
+    if (!u.alerted) return {ok:true,path:[],moved:false,hidden:s.fog[u.y][u.x],message:'敌方警戒中'};
+  }
   const targetsAt = point => enemies.filter(t=>inFireRange(s,{...u,...point},t));
   if (!u.fired && u.repair) {
     // Preserve the adjacent repair action before considering a hard-AI reposition.
@@ -240,6 +246,11 @@ export function checkOutcome(s) {
   const blue = s.units.filter(u=>u.team==='blue'&&u.hp>0);
   if (!blue.length) { s.winner='red'; return s.winner; }
   const mission = s.mission;
+  if (mission?.kind==='breakthrough') {
+    if (blue.length < mission.required) s.winner='red';
+    else if (breakthroughArrivals(s).length >= mission.required) s.winner='blue';
+    return s.winner;
+  }
   if (mission?.kind==='escort' && !blue.some(u=>u.type==='engineer')) { s.winner='red'; return s.winner; }
   if (mission) {
     const progress = s.missionProgress ?? { captured: [], heldTurns: 0 };
@@ -249,6 +260,11 @@ export function checkOutcome(s) {
   } else if (!s.units.some(u=>u.team==='red'&&u.hp>0)) s.winner='blue';
   return s.winner;
 }
+export function breakthroughArrivals(s) {
+  if (s.mission?.kind!=='breakthrough') return [];
+  return s.units.filter(u=>u.team==='blue'&&u.hp>0&&s.mission.points.some(p=>p.x===u.x&&p.y===u.y));
+}
+
 export function updateMission(s,endEnemyTurn=false) {
   const mission=s.mission;
   const progress=s.missionProgress ?? (s.missionProgress={captured:[],heldTurns:0});

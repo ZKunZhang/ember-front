@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { SCENARIOS } from '../../src/game/scenarios.js';
 import { selectMapUnit } from './unit-selection.js';
 
-test('twelve maps, nine vehicles, canvas movement, engine info and turn lifecycle', async ({page})=>{
+test('campaign maps, nine vehicles, canvas movement, engine info and turn lifecycle', async ({page})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/operations');
-  await expect(page.locator('.campaign-node')).toHaveCount(12);
+  await expect(page.locator('.campaign-node')).toHaveCount(SCENARIOS.length);
   await expect(page.getByRole('region',{name:'战区地图'})).toBeVisible();
   await page.screenshot({path:'test-results/library.png',fullPage:true});
   await page.getByTestId('deploy-mountain-pass').click();

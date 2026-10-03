@@ -10,7 +10,8 @@ export default function ScenarioPreview({id,difficulty,formationId}) {
     const scenario=createScenario(id,difficulty,formationId);
     return {...scenario,selectedId:null,turn:'blue',winner:null,
       fog:Array.from({length:scenario.rows},()=>Array(scenario.cols).fill(false)),
-      units:scenario.deployments.map((unit,index)=>({...unit,id:index+1,hp:UNIT_TYPES[unit.type].maxHp,maxHp:UNIT_TYPES[unit.type].maxHp})),
+      units:scenario.deployments.map((unit,index)=>({...unit,id:index+1,hp:UNIT_TYPES[unit.type].maxHp,maxHp:UNIT_TYPES[unit.type].maxHp}))
+        .filter(unit=>!(scenario.mission?.kind==='breakthrough'||scenario.mission?.outposts)||unit.team==='blue'),
     };
   },[id,difficulty,formationId]);
   useEffect(()=>{

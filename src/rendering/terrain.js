@@ -1,3 +1,5 @@
+import { mountainMesh } from './landforms.js';
+
 export function createTerrainRenderer(painter, state) {
   const { ctx, scale, p, polygon, line, tile } = painter;
   const terrainAt = (x, y) => state.terrain[y]?.[x];
@@ -96,26 +98,19 @@ export function createTerrainRenderer(painter, state) {
     }
   }
 
-  function rock(x, y, size, height, seed, hidden) {
-    const q = (a, b, z = 0) => [x + a * size, y + b * size, z];
-    const colors = hidden ? ['#59685f', '#6a786d', '#424f49', '#879084', '#36433e'] : ['#8c9b90', '#b4beb0', '#63796f', '#d8deca', '#455d55'];
-    const a = q(.02, .22), b = q(.09, .78), c = q(.5, .99), d = q(.94, .72), e = q(.99, .27), f = q(.6, .01);
-    const ridge = .42 + (seed % 4) * .045;
-    const g = q(.28, .35, height * .75), h = q(ridge, .62, height), i = q(.73, .52, height * .56), j = q(.48, .16, height * .63);
-    paint([a, b, g], colors[2]);paint([b, c, h, g], colors[0]);
-    paint([a, g, j, f], colors[1]);paint([g, h, i, j], colors[3]);
-    paint([c, d, i, h], colors[2]);paint([f, j, i, e], colors[0]);paint([d, e, i], colors[4]);
-    line(p(...g), p(...h), hidden ? '#83806a' : '#dbccb0', .7);
-    line(p(...i), p(...d), hidden ? '#3c4838' : '#68715a', .7);
-    line(p(...q(.45, .81, height * .34)), p(...q(.54, .87, height * .16)), colors[4], .65);
-  }
   function mountain(x, y, hidden) {
-    const seed = x * 7 + y * 13;
-    const center = p(x + .56, y + .55);
-    ctx.fillStyle = '#0e1d1650';ctx.beginPath();ctx.ellipse(center.x + 4 * scale, center.y + 4 * scale, 21 * scale, 10 * scale, 0, 0, Math.PI * 2);ctx.fill();
-    rock(x + .015, y + .08, .85, 26 + seed % 17, seed, hidden);
-    rock(x + .65, y + .52, .3, 10 + seed % 6, seed + 2, hidden);
-    rock(x + .75, y + .13, .17, 5 + seed % 4, seed + 1, hidden);
+    const facets=mountainMesh(state.terrain,x,y);
+    for(const [a,b,c] of facets) {
+      const slope=(a[2]-c[2])*.55+(b[2]-c[2])*.25;
+      const light=Math.max(22,Math.min(65,(hidden?29:49)+slope*.45));
+      paint([a,b,c],`hsl(95 10% ${light}%)`);
+    }
+    // Texture stays on the shared surface; no cell outlines split the massif.
+    const peak=facets[0][2];
+    if((x+y)%3===0) {
+      const shoulder=facets[5][0];
+      line(p(...peak),p(...shoulder),hidden?'#68746566':'#d0c6a866',.7);
+    }
   }
 
   function tree(x, y, height, hidden, seed) {
@@ -158,9 +153,11 @@ export function createTerrainRenderer(painter, state) {
     const type = terrainAt(x, y);
     if (type === 1) mountain(x, y, hidden);
     if (type === 2) {
-      tree(x + .27, y + .3, 27, hidden, x + y);
-      tree(x + .38, y + .74, 31, hidden, x + y + 1);
-      tree(x + .72, y + .46, 24, hidden, x + y + 2);
+      const left=terrainAt(x,y-1)===2?0:.12,right=terrainAt(x,y+1)===2?1:.88;
+      const back=terrainAt(x-1,y)===2?0:.12,front=terrainAt(x+1,y)===2?1:.88;
+      paint([[x+back,y+left,18],[x+front,y+left,18],[x+front,y+right,18],[x+back,y+right,18]],hidden?'#304436':'#475940');
+      for(const [a,b,i] of [[.2,.2,0],[.18,.72,1],[.64,.12,2],[.66,.62,3]])
+        tree(x+a,y+b,29+(x*3+y+i*7)%8,hidden,x+y+i);
     }
     if (type === 3) bridge(x, y, hidden);
   }

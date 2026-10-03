@@ -10,18 +10,42 @@ import FieldManual from './components/FieldManual.jsx';
 import StoryBrief from './components/StoryBrief.jsx';
 import BattleSettings from './components/BattleSettings.jsx';
 import TitleScreen from './components/TitleScreen.jsx';
+import BattleFeedback from './components/BattleFeedback.jsx';
+import { useBattleAudio } from './hooks/useBattleAudio.js';
+import { SCENARIOS } from './game/scenarios.js';
+import { PROGRESS_STORAGE_KEY, readProgress, recordVictory } from './game/progress.js';
 
 export default function App() {
   const [route,setRoute]=useState(()=>readRoute(new URL(window.location.href)));
   const [screen,setScreen]=useState(()=>route?'battle':window.location.pathname==='/operations'?'library':'home');
   const [hasBattle,setHasBattle]=useState(()=>Boolean(route)),[help,setHelp]=useState(false);
   const [settings,setSettings]=useState(false);
-  const {game,dispatch}=useGame(screen==='battle'&&!settings,route);
+  const [progress,setProgress]=useState(readProgress);
+  const active=screen==='battle'&&!settings&&!help;
+  const {game,dispatch}=useGame(active,route);
+  const audio=useBattleAudio(game,active,screen);
+  useEffect(()=>{
+    if(game.winner==='blue')setProgress(current=>recordVictory(current,game));
+  },[game]);
+  useEffect(()=>{
+    try { localStorage.setItem(PROGRESS_STORAGE_KEY,JSON.stringify(progress)); } catch { /* Keep records for this session. */ }
+  },[progress]);
+  useEffect(()=>{
+    const keydown=event=>{
+      if(screen!=='battle'||settings||help||event.repeat||event.ctrlKey||event.metaKey||event.altKey||event.isComposing||document.querySelector('dialog[open]'))return;
+      if(event.target.closest('input,select,textarea,[contenteditable="true"]'))return;
+      if(event.key.toLowerCase()==='m'){event.preventDefault();audio.update({muted:!audio.settings.muted});}
+      if(event.key==='Escape'){event.preventDefault();setSettings(true);}
+    };
+    window.addEventListener('keydown',keydown);
+    return ()=>window.removeEventListener('keydown',keydown);
+  },[screen,settings,help,audio]);
   useLayoutEffect(()=>{window.scrollTo({top:0,left:0,behavior:'instant'});},[screen,route?.scenarioId]);
   const navigate=(next,destination='library')=>{
     const path=next?battleUrl(next):destination==='home'?'/':'/operations';
     if(window.location.pathname+window.location.search!==path)window.history.pushState(null,'',path);
     setSettings(false);
+    setHelp(false);
     setRoute(next);
     setScreen(next?'battle':destination);
   };
@@ -37,6 +61,7 @@ export default function App() {
         setHasBattle(true);
       }
       setSettings(false);
+      setHelp(false);
       setRoute(next);
       setScreen(next?'battle':window.location.pathname==='/operations'?'library':'home');
     };
@@ -53,9 +78,10 @@ export default function App() {
   const locked=game.turn!=='blue'||Boolean(game.winner);
   const living=allies.filter(u=>u.hp>0);
   const escort=allies.find(u=>u.type==='engineer');
+  const nextScenario=SCENARIOS[SCENARIOS.findIndex(s=>s.id===game.id)+1];
   return <div className={screen==='battle'?'game-shell':'library-shell'}>
-    <header><div className="header-actions"><button className="icon-button" id="battle-settings" onClick={()=>setSettings(true)} aria-label="战斗设置" title="战斗设置">⚙</button></div></header>
-    {screen==='library'?<ScenarioSelect onHome={()=>navigate(null,'home')} onDeploy={deploy} hasBattle={hasBattle} onResume={resume}/>:<main className="battle-screen">
+    <header><div className="header-actions"><button className="icon-button" id="battle-settings" onClick={()=>setSettings(true)} aria-label="战斗设置" title="战斗设置（Esc）">⚙</button><button className="icon-button sound-toggle" data-quiet aria-label={audio.settings.muted?'开启音效':'静音'} aria-pressed={audio.settings.muted} title="音效开关（M）" onClick={()=>audio.update({muted:!audio.settings.muted})}>{audio.settings.muted?'♪̸':'♪'}</button></div></header>
+    {screen==='library'?<ScenarioSelect onHome={()=>navigate(null,'home')} onDeploy={deploy} hasBattle={hasBattle} onResume={resume} progress={progress}/>:<main className="battle-screen">
       <section className="mission-overview" aria-label="任务与进度">
       <section className="mission-head">
         <div><div className="eyebrow">{game.subtitle} <span>/</span> {game.direction}</div><h1>{game.name}<span>{game.difficulty} · {game.formationName}</span></h1></div>
@@ -69,6 +95,7 @@ export default function App() {
       </section>
       <section className="objective-hud" aria-label="作战目标">
         <p className="objective-text"><span>任务</span>{game.objective}</p>
+        {game.mission?.kind==='breakthrough'&&<div className="crossing-readiness" aria-label="穿越任务状态"><span>{game.direction}</span><span>出发 {allies.length} 辆 · 至少保住 {game.mission.required} 辆</span><div className="exit-slots" aria-label={`撤离进度 ${breakthroughArrivals(game).length} / ${game.mission.required}`}>{Array.from({length:game.mission.required},(_,i)=><i key={i} className={i<breakthroughArrivals(game).length?'arrived':''}/>)}</div></div>}
         {game.mission&&<p className="objective-progress" aria-live="polite">{game.winner==='blue'?'任务已完成':game.winner==='red'?'任务失败':game.mission.kind==='breakthrough'?`抵达撤离区 ${breakthroughArrivals(game).length} / ${game.mission.required} 辆 · 无需全歼敌军`:game.mission.kind==='hold'?`坚守进度 ${game.missionProgress?.heldTurns||0} / ${game.mission.turns} 回合`:game.mission.kind==='capture'?`占领进度 ${game.missionProgress?.captured?.filter(Boolean).length||0} / ${game.mission.points.length}`:`护送目标：工程车 ${String(escort?.id).padStart(2,'0')} · 生命 ${escort?.hp ?? 0} / ${escort?.maxHp ?? 0} · 抵达金色目标格`}</p>}
         <details className="mission-intel">
           <summary>任务简报与战术路线</summary>
@@ -78,12 +105,13 @@ export default function App() {
         </details>
       </section>
       </section>
-      <Battlefield game={game} onCell={(x,y)=>dispatch({type:'CELL',x,y})} onReset={()=>dispatch({type:'RESET'})} onUndo={()=>dispatch({type:'UNDO'})}/>
+      <Battlefield game={game} onCell={(x,y)=>dispatch({type:'CELL',x,y})} onReset={()=>dispatch({type:'RESET'})} onUndo={()=>dispatch({type:'UNDO'})} onExit={()=>{setHasBattle(false);navigate(null,'home');}} nextScenario={nextScenario} onNext={()=>nextScenario&&deploy(nextScenario.id,game.difficultyId,nextScenario.formationId)}/>
+      <BattleFeedback game={game} active={active}/>
       <CommandPanel game={game}/>
       <UnitActions game={game} dispatch={dispatch}/>
       <button className="round-command end-turn-button" id="end-turn" disabled={locked} onClick={()=>dispatch({type:'END_TURN'})} aria-label="结束回合"><span aria-hidden="true">→</span><small>{game.winner?'已结束':locked?'敌方行动':'结束回合'}</small></button>
     </main>}
-    <BattleSettings open={settings&&screen==='battle'} onClose={()=>setSettings(false)} onReset={()=>{dispatch({type:'RESET'});setSettings(false);}} onExit={()=>navigate(null)} onHelp={()=>{setSettings(false);setHelp(true);}}/>
+    <BattleSettings open={settings&&screen==='battle'} onClose={()=>setSettings(false)} onReset={()=>{dispatch({type:'RESET'});setSettings(false);}} onExit={()=>navigate(null)} onHelp={()=>{setSettings(false);setHelp(true);}} audio={audio.settings} onAudioChange={audio.update}/>
     <FieldManual open={help} onClose={()=>setHelp(false)}/>
   </div>;
 }

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createScenario, SCENARIOS } from '../src/game/scenarios.js';
 import { createView, project, unproject } from '../src/rendering/projection.js';
 
-for (const scenario of SCENARIOS) test(`${scenario.id}: perspective tabletop view puts allies in front and keeps cells selectable`,()=>{
+for (const scenario of SCENARIOS) test(`${scenario.id}: perspective respects the approach direction and keeps cells selectable`,()=>{
   const s=createScenario(scenario.id);
   for (const [width,height] of [[1000,620],[358,430]]) {
     const view=createView(s,width,height,1);
@@ -11,7 +11,8 @@ for (const scenario of SCENARIOS) test(`${scenario.id}: perspective tabletop vie
       const units=s.deployments.filter(u=>u.team===team);
       return units.reduce((total,u)=>total+project(view,u.x+.5,u.y+.5).y,0)/units.length;
     };
-    assert.ok(averageY('blue')>averageY('red')+height*.1);
+    const north=s.approach.startsWith('north');
+    assert.ok(north?averageY('blue')<averageY('red')-height*.1:averageY('blue')>averageY('red')+height*.1);
     assert.ok(view.th/view.tw>.5&&view.th/view.tw<.7);
     const a=project(view,8,7),b=project(view,8,8),c=project(view,9,7);
     assert.equal(b.y,a.y);

@@ -16,7 +16,7 @@ test('shot effects retain a visible source and lethal target for the animation',
 
 test('hidden artillery effects never disclose their firing position',()=>{
   const s=initialGame(),blue=s.units[0],red=s.units.find(u=>u.team==='red');
-  s.units=[blue,red];Object.assign(red,{type:'artillery',x:blue.x-4,y:blue.y,range:9,minRange:1,indirect:true,move:0});
+  s.units=[blue,red];s.mission=null;Object.assign(red,{type:'artillery',x:blue.x-4,y:blue.y,range:9,minRange:1,indirect:true,move:0});
   s.turn='red';s.enemyQueue=[red.id];s.enemyIndex=0;
   s.fog=s.fog.map(row=>row.map(()=>true));blue.vision=1;
   const next=gameReducer(s,{type:'ENEMY_STEP',session:s.session});

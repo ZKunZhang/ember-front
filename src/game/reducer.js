@@ -1,9 +1,12 @@
-import { createState, unitAt, moveUnit, attackUnit, repairUnit, enemyAct, beginPlayerTurn, onMap } from './engine.js';
+import { createState, unitAt, moveUnit, attackUnit, repairUnit, enemyAct, beginPlayerTurn, onMap, breakthroughArrivals } from './engine.js';
 
 function addLog(s,message,kind='info') {
   s.logSequence++;
   s.logs.unshift({id:s.logSequence,round:s.turnNumber,message,kind});
   s.logs=s.logs.slice(0,60);
+}
+function notify(s,message,kind='info',cue=null) {
+  s.notice={id:++s.noticeSequence,message,kind,cue};
 }
 function effect(s,result,sourceId) {
   const target=s.units.find(u=>u.id===result.targetId);
@@ -30,11 +33,13 @@ function finishPlayerTurn(s) {
   s.turn='red';s.selectedId=null;s.enemyIndex=0;
   s.enemyQueue=s.units.filter(u=>u.team==='red'&&u.hp>0).map(u=>u.id);
   addLog(s,'敌方行动开始，保持警戒。','warn');
+  notify(s,'敌方行动 · 正在执行指令，请稍候','enemy','enemyTurn');
 }
 export function initialGame(id,session=1,difficulty='simple',formationId) {
-  const s={...createState(id,difficulty,formationId),session,mode:'move',inspectedId:null,logs:[],logSequence:0,effectSequence:0,effect:null,movementSequence:0,movement:null,enemyIndex:0,enemyQueue:[],undoHistory:[]};
-  addLog(s,`${s.name}：9 支车辆编队完成部署。`,'good');
+  const s={...createState(id,difficulty,formationId),session,mode:'move',inspectedId:null,logs:[],logSequence:0,effectSequence:0,effect:null,movementSequence:0,movement:null,enemyIndex:0,enemyQueue:[],undoHistory:[],noticeSequence:0,notice:null};
+  addLog(s,`${s.name}：${s.units.filter(u=>u.team==='blue').length} 辆车完成部署。`,'good');
   addLog(s,'侦察车开路，工程车随队，火炮利用共享视野。');
+  notify(s,`${s.name} · 部队已就位，点击蓝格开始推进`,'good','deploy');
   return s;
 }
 export function gameReducer(current,action) {
@@ -47,6 +52,7 @@ export function gameReducer(current,action) {
     restored.undoHistory=history.slice(0,-1);
     restored.session=current.session+1;
     restored.effect=null;restored.movement=null;
+    notify(restored,'已撤回上一步 · 战局与行动机会已恢复','info','undo');
     return restored;
   }
   const {undoHistory: history=[], ...withoutHistory}=current;
@@ -75,13 +81,14 @@ export function gameReducer(current,action) {
     const target=unitAt(s,action.x,action.y),u=selected();
     if (target?.team==='red'&&!s.fog[target.y][target.x]) {
       s.inspectedId=target.id;
+      if(s.turn==='blue'&&!s.winner&&u?.fired)notify(s,'本车已开火或维修 · 正在查看敌军情报','warn','reject');
       if (s.turn!=='blue'||s.winner||!u||u.fired) return s;
     }
     if (target?.team==='blue'&&(s.mode!=='repair'||s.turn!=='blue'||s.winner)) {
       s.selectedId=target.id;s.inspectedId=null;s.mode='move';return s;
     }
     if (s.turn!=='blue'||s.winner) return current;
-    if (!u) { addLog(s,'请先选择一个我方单位。'); return s; }
+    if (!u) { addLog(s,'请先选择一个我方单位。'); notify(s,'请先点击一辆我方车辆','warn','reject'); return s; }
     const origin={x:u.x,y:u.y};
     let result;
     if (target?.team==='red'&&!s.fog[target.y][target.x]) result=attackUnit(s,u.id,target.id);
@@ -89,6 +96,7 @@ export function gameReducer(current,action) {
     else if (s.mode==='move') result=moveUnit(s,u.id,action.x,action.y);
     else result={ok:false,message:'请选择射程内可见的敌军；山林可能阻挡直射火力。'};
     addLog(s,result.message,result.ok?'good':'warn');
+    notify(s,result.message,result.encountered?'enemy':result.ok?'good':'warn',result.encountered?'enemyTurn':result.ok?null:'reject');
     if (result.damage||result.healed) effect(s,result,u.id);
     if (result.ok) movement(s,u.id,origin,result.path,current.fog);
     if (result.ok) {
@@ -97,7 +105,7 @@ export function gameReducer(current,action) {
     }
     if (result.ok&&s.mode==='repair') s.mode='move';
     if (result.ok&&result.path) s.mode='move';
-    if (result.ok&&!s.winner&&s.units.filter(u=>u.team==='blue'&&u.hp>0).every(u=>u.moved)) {
+    if (result.ok&&!result.encountered&&!s.winner&&s.units.filter(u=>u.team==='blue'&&u.hp>0).every(u=>u.moved)) {
       addLog(s,'所有存活车辆已移动，自动结束回合。');
       finishPlayerTurn(s);
     }
@@ -116,14 +124,26 @@ export function gameReducer(current,action) {
       if (result.damage) {
         const target=s.units.find(u=>u.id===result.targetId);
         addLog(s,`${result.message}，${target.name}受到 ${result.damage} 点伤害${target.hp<=0?'，单位损失':''}。`,'warn');effect(s,result,id);
+        if(target.hp<=0)notify(s,`${target.name} ${String(target.id).padStart(2,'0')} 已损失`,'warn');
+        else if(s.mission?.kind==='escort'&&target.type==='engineer')notify(s,`护送目标受击 · 工程车剩余生命 ${target.hp} / ${target.maxHp}`,'warn');
       } else if (result.healed&&!result.hidden) { addLog(s,'敌方工程车正在维修。');effect(s,result,id); }
       else if (result.ok&&!result.hidden&&result.moved) addLog(s,'侦察到敌方车辆推进。');
       s.enemyIndex++;
     }
     if (s.enemyIndex>=s.enemyQueue.length&&!s.winner) {
       beginPlayerTurn(s);addLog(s,`第 ${s.turnNumber} 回合，所有车辆行动已恢复。`,'good');
+      notify(s,`第 ${s.turnNumber} 回合 · 我方行动机会已恢复`,'good','turn');
     }
   } else return current;
+  if(!s.winner&&s.mission) {
+    const captured=s.missionProgress.captured.filter(Boolean).length;
+    if(s.mission.kind==='capture'&&captured>current.missionProgress.captured.filter(Boolean).length)
+      notify(s,`集结点已占领 · 任务进度 ${captured} / ${s.mission.points.length}`,'good','objective');
+    if(s.mission.kind==='breakthrough'&&breakthroughArrivals(s).length>breakthroughArrivals(current).length)
+      notify(s,`车辆抵达撤离区 · ${breakthroughArrivals(s).length} / ${s.mission.required} 辆就位`,'good','objective');
+    if(s.mission.kind==='hold'&&s.missionProgress.heldTurns>current.missionProgress.heldTurns)
+      notify(s,`坚守成功 ${s.missionProgress.heldTurns} / ${s.mission.turns} 回合 · 我方行动已恢复`,'good','objective');
+  }
   if (!s.units.some(u=>u.id===s.inspectedId&&u.hp>0&&u.team==='red'&&!s.fog[u.y][u.x])) s.inspectedId=null;
   if (record) s.undoHistory=[...history,snapshot].slice(-50);
   return s;

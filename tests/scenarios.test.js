@@ -6,13 +6,14 @@ import { DIFFICULTIES } from '../src/game/difficulty.js';
 test('every scenario and difficulty has legal deployments and a connected approach',()=>{
   for (const meta of SCENARIOS) for (const difficulty of Object.keys(DIFFICULTIES)) {
     const s=createScenario(meta.id,difficulty), occupied=new Set(s.deployments.map(u=>`${u.x},${u.y}`));
-    assert.equal(s.deployments.length,9+s.enemyCount);
+    assert.equal(s.deployments.length,s.allyCount+s.enemyCount);
     assert.equal(occupied.size,s.deployments.length);
     for (const u of s.deployments) assert.ok(s.terrain[u.y][u.x]>=0);
     const passable=(x,y)=>x>=0&&y>=0&&x<s.cols&&y<s.rows&&[0,3].includes(s.terrain[y][x]);
-    const seen=new Set(s.deployments.filter(u=>u.team==='blue').map(u=>`${u.x},${u.y}`)), queue=[...seen];
+    const first=s.deployments.find(u=>u.team==='blue');
+    const seen=new Set([`${first.x},${first.y}`]), queue=[...seen];
     for(let i=0;i<queue.length;i++){const [x,y]=queue[i].split(',').map(Number);for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=`${x+dx},${y+dy}`;if(!seen.has(k)&&passable(x+dx,y+dy)){seen.add(k);queue.push(k);}}}
-    for (const u of [...s.deployments.filter(u=>u.team==='red'),...(s.mission?.points||(s.mission?.point?[s.mission.point]:[]))]) assert.ok(seen.has(`${u.x},${u.y}`),`${meta.id} cannot reach ${u.x},${u.y}`);
+    for (const u of [...s.deployments,...(s.mission?.points||(s.mission?.point?[s.mission.point]:[]))]) assert.ok(seen.has(`${u.x},${u.y}`),`${meta.id} cannot reach ${u.x},${u.y}`);
   }
 });
 

@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import { SCENARIOS } from '../../src/game/scenarios.js';
 
 test('deployment has a reloadable URL with difficulty and formation',async({page})=>{
   await page.goto('/operations');
@@ -18,7 +19,7 @@ test('deployment has a reloadable URL with difficulty and formation',async({page
   await page.goBack();
   await expect(page.locator('.mission-head h1')).toContainText('林海走廊');
   await page.goForward();
-  await expect(page.locator('.campaign-node')).toHaveCount(12);
+  await expect(page.locator('.campaign-node')).toHaveCount(SCENARIOS.length);
   await page.getByRole('button',{name:'返回当前战场 →'}).click();
   await expect(page).toHaveURL(/\/battle\/forest-corridor\?difficulty=hard&formation=artillery$/);
 });

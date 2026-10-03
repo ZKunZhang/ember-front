@@ -19,7 +19,8 @@ test('expanded campaign nodes stay separate and deploy all new battlefields',asy
     for(const scenario of SCENARIOS.slice(12)){
       await page.getByTestId(`deploy-${scenario.id}`).click();
       await expect(page.locator('.mission-head h1')).toContainText(scenario.name);
-      await expect(page.locator('#ally-count')).toHaveText('09 / 09');
+      const count=String(scenario.allyCount).padStart(2,'0');
+      await expect(page.locator('#ally-count')).toHaveText(`${count} / ${count}`);
       await page.reload();
       await expect(page.locator('.mission-head h1')).toContainText(scenario.name);
       await page.goto('/operations');
@@ -35,15 +36,16 @@ test('new battlefields deploy their chosen difficulty and allied combination',as
     await expect(select).toHaveValue('recommended');
     await page.getByRole('combobox',{name:'作战难度'}).selectOption('hard');
     await select.selectOption('artillery');
-    const labels=Object.entries(UNIT_TYPES).map(([type,u])=>`${u.name} × ${FORMATIONS.artillery.types.filter(t=>t===type).length}`);
+    const total=SCENARIOS.find(s=>s.id===id).allyCount,count=String(total).padStart(2,'0');
+    const labels=Object.entries(UNIT_TYPES).map(([type,u])=>`${u.name} × ${FORMATIONS.artillery.types.slice(0,total).filter(t=>t===type).length}`);
     await page.getByTestId(`deploy-${id}`).click();
     await expect(page.locator('.mission-head h1')).toContainText(name);
     await expect(page.locator('.mission-head h1')).toContainText('困难');
-    await expect(page.locator('#ally-count')).toHaveText('09 / 09');
+    await expect(page.locator('#ally-count')).toHaveText(`${count} / ${count}`);
     await expect(page.locator('.squad-row')).toHaveCount(0);
     const checkFormation = async () => {
       const names = [];
-      for(let unitId=1;unitId<=9;unitId++) {
+      for(let unitId=1;unitId<=total;unitId++) {
         await selectMapUnit(page,unitId);
         await expect(page.locator('.unit-panel')).toHaveAttribute('data-unit',String(unitId));
         names.push(await page.locator('.unit-name').innerText());
@@ -82,7 +84,7 @@ test('historical missions show narrative, objectives and source references',asyn
 test('original crossing and escort stories expose their own objectives and target status',async({page})=>{
   await page.goto('/operations');
   await page.getByRole('button',{name:'穿越与护送',exact:true}).click();
-  await expect(page.locator('.campaign-node')).toHaveCount(5);
+  await expect(page.locator('.campaign-node')).toHaveCount(SCENARIOS.filter(s=>!s.story?.sourceUrl&&(s.mission?.kind==='breakthrough'||s.mission?.outposts)).length);
   for(const meta of SCENARIOS.filter(s=>s.story&&!s.story.sourceUrl)){
     await page.goto(`/battle/${meta.id}`);
     const crossing=meta.mission.kind==='breakthrough';

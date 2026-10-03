@@ -1,6 +1,7 @@
 import { UNIT_TYPES } from './catalog.js';
 import { createScenario } from './scenarios.js';
 import { DEFAULT_DIFFICULTY, applyEnemyDifficulty, getDifficulty } from './difficulty.js';
+import { canSee, lineOfSight } from './sight.js';
 
 export const distance = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 export const keyOf = (x, y) => `${x},${y}`;
@@ -30,7 +31,7 @@ export function updateFog(s) {
   for (const u of s.units.filter(u => u.team === 'blue' && u.hp > 0)) {
     for (let dy = -u.vision; dy <= u.vision; dy++) for (let dx = -u.vision; dx <= u.vision; dx++) {
       const x = u.x + dx, y = u.y + dy;
-      if (onMap(s,x,y) && Math.abs(dx) + Math.abs(dy) <= u.vision) s.fog[y][x] = false;
+      if (onMap(s,x,y) && Math.abs(dx) + Math.abs(dy) <= u.vision && lineOfSight(s,u,{x,y})) s.fog[y][x] = false;
     }
   }
 }
@@ -61,15 +62,7 @@ export function reachable(s, u, limit = u?.move ?? 0, knownOnly = u?.team === 'b
 
 // Direct fire is blocked by mountains and woodland; indirect artillery ignores them.
 export function clearShot(s, from, to) {
-  if (from.indirect) return true;
-  const dx = to.x - from.x, dy = to.y - from.y;
-  const steps = Math.max(Math.abs(dx), Math.abs(dy)) * 3;
-  for (let i = 1; i < steps; i++) {
-    const x = Math.round(from.x + dx * i / steps), y = Math.round(from.y + dy * i / steps);
-    if ((x === from.x && y === from.y) || (x === to.x && y === to.y)) continue;
-    if (!onMap(s,x,y) || [1,2].includes(s.terrain[y][x])) return false;
-  }
-  return true;
+  return from.indirect || lineOfSight(s,from,to);
 }
 export function inFireRange(s, u, target) {
   const d = distance(u,target);
@@ -90,12 +83,17 @@ export function moveUnit(s,id,x,y) {
   const path = reachable(s,u).get(keyOf(x,y));
   if (!path) return fail('无法到达：检查距离、地形与占位');
   const actual = [];
+  const known=new Set(s.units.filter(t=>t.team==='red'&&t.hp>0&&!s.fog[t.y][t.x]).map(t=>t.id));
+  let encountered=0;
   for (const p of path) {
     if (unitAt(s,p.x,p.y)) break;
     Object.assign(u,p); actual.push(p);
+    updateFog(s);
+    encountered=s.units.filter(t=>t.team==='red'&&t.hp>0&&!s.fog[t.y][t.x]&&!known.has(t.id)).length;
+    if(encountered)break;
   }
   u.moved = true; updateFog(s); updateMission(s); checkOutcome(s);
-  return {ok:true,message:actual.length===path.length?'移动完成，可指定目标开火或维修':'前方遭遇敌军，推进停止',path:actual,moved:actual.length};
+  return {ok:true,message:encountered?`发现 ${encountered} 辆敌军，行军已暂停 · 请调整后续部署`:actual.length===path.length?'移动完成，可指定目标开火或维修':'前方遭遇敌军，推进停止',path:actual,moved:actual.length,encountered};
 }
 export function attackUnit(s,id,targetId) {
   const u = s.units.find(u=>u.id===id), t = s.units.find(u=>u.id===targetId), error = playerError(s,u);
@@ -107,7 +105,7 @@ export function attackUnit(s,id,targetId) {
   if (!clearShot(s,u,t)) return fail('山林阻挡直射火力，请调整位置');
   const damage = damageFor(u,t);
   t.hp = Math.max(0,t.hp-damage); u.fired = true;
-  if (s.mission?.kind==='breakthrough' || s.mission?.outposts) t.alerted=true;
+  if (s.mission?.kind==='breakthrough' || s.mission?.outposts) alertPatrol(s,t);
   updateFog(s); checkOutcome(s);
   return {ok:true,message:`命中${t.name}，造成 ${damage} 点伤害${t.hp===0?'，目标已击毁':''}`,damage,targetId:t.id};
 }
@@ -164,6 +162,10 @@ function moveToRepair(s, u, target) {
   if (path) Object.assign(u,path.at(-1));
   return path || null;
 }
+function alertPatrol(s,unit) {
+  unit.alerted=true;
+  if(unit.patrolGroup!==undefined)for(const ally of s.units)if(ally.team===unit.team&&ally.patrolGroup===unit.patrolGroup)ally.alerted=true;
+}
 function retreat(s, u, enemies) {
   const current = threatAt(s,u,enemies), routes = reachable(s,u,u.move,false);
   const choices = [...routes.values()].filter(path => threatAt(s,path.at(-1),enemies) < current);
@@ -187,8 +189,9 @@ export function enemyAct(s,id) {
   if (!enemies.length) { checkOutcome(s); return {ok:false}; }
   // Crossing patrols stay at their posts until approached or fired upon.
   if ((s.mission?.kind==='breakthrough' || s.mission?.outposts) && !u.alerted) {
-    u.alerted = u.hp < u.maxHp || enemies.some(t=>distance(u,t)<=u.vision);
+    u.alerted = u.hp < u.maxHp || enemies.some(t=>canSee(s,u,t));
     if (!u.alerted) return {ok:true,path:[],moved:false,hidden:s.fog[u.y][u.x],message:'敌方警戒中'};
+    alertPatrol(s,u);
   }
   const targetsAt = point => enemies.filter(t=>inFireRange(s,{...u,...point},t));
   if (!u.fired && u.repair) {

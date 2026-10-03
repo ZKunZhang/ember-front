@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { SCENARIOS, FORMATIONS } from '../game/scenarios.js';
 import { DEFAULT_DIFFICULTY, DIFFICULTIES, enemyCountFor } from '../game/difficulty.js';
 import ScenarioPreview from './ScenarioPreview.jsx';
+import { progressKey } from '../game/progress.js';
 
 const POSITIONS = [[15,23],[38,8],[61,23],[15,53],[38,38],[84,38],[15,68],[61,53],[84,68],[61,8],[84,8],[38,68],[15,8],[38,53],[84,53],[15,38],[84,23],[61,38],[61,68],[15,83],[38,83],[61,83],[84,83]];
 const FILTERS = [['all','全部战区'],['standard','常规作战'],['story','战史行动'],['crossing','穿越与护送']];
+const isCrossing=s=>!s.story?.sourceUrl&&(s.mission?.kind==='breakthrough'||s.mission?.outposts);
 
 function CampaignTerrain() {
   return <svg className="campaign-terrain" viewBox="0 0 1000 700" preserveAspectRatio="none" aria-hidden="true">
@@ -37,18 +39,20 @@ function CampaignTerrain() {
   </svg>;
 }
 
-export default function ScenarioSelect({ onDeploy, onResume, hasBattle, onHome }) {
+export default function ScenarioSelect({ onDeploy, onResume, hasBattle, onHome, progress = {} }) {
   const [difficulty,setDifficulty]=useState(DEFAULT_DIFFICULTY);
   const [formation,setFormation]=useState('recommended');
   const [filter,setFilter]=useState('all');
   const [search,setSearch]=useState('');
   const [inspected,setInspected]=useState(SCENARIOS[0].id);
-  const scenarios=SCENARIOS.filter(s=>(filter==='all'||(filter==='standard'?!s.story:filter==='crossing'?s.story&&!s.story.sourceUrl:Boolean(s.story?.sourceUrl)))&&`${s.name} ${s.subtitle} ${s.briefing}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const scenarios=SCENARIOS.filter(s=>(filter==='all'||(filter==='standard'?!s.story&&!isCrossing(s):filter==='crossing'?isCrossing(s):Boolean(s.story?.sourceUrl)))&&`${s.name} ${s.subtitle} ${s.briefing}`.toLowerCase().includes(search.trim().toLowerCase()));
   const current=scenarios.find(s=>s.id===inspected)||scenarios[0];
+  const completed=SCENARIOS.filter(s=>progress[progressKey(s.id,difficulty)]).length;
+  const record=current&&progress[progressKey(current.id,difficulty)];
   const formationFor=s=>formation==='recommended'?s.formationId:formation;
   return <main className="campaign-screen">
     <div className="campaign-topbar">
-      <div><button className="campaign-back" onClick={onHome}>← 主菜单</button><span className="campaign-overline">CAMPAIGN MAP / 战区总览</span><h1>选择作战区域<span>{String(SCENARIOS.length).padStart(2,'0')} 个战区已就绪</span></h1></div>
+      <div><button className="campaign-back" onClick={onHome}>← 主菜单</button><span className="campaign-overline">CAMPAIGN MAP / 战区总览</span><h1>选择作战区域<span>{String(SCENARIOS.length).padStart(2,'0')} 个战区已就绪</span></h1><p className="campaign-progress">{DIFFICULTIES[difficulty].label}难度 <span>{String(completed).padStart(2,'0')} / {SCENARIOS.length}</span> 已完成<i style={{'--progress':`${completed/SCENARIOS.length*100}%`}}/></p></div>
       {hasBattle&&<button className="text-button" onClick={onResume}>返回当前战场 →</button>}
     </div>
     <div className="campaign-layout">
@@ -63,25 +67,28 @@ export default function ScenarioSelect({ onDeploy, onResume, hasBattle, onHome }
             <div className="campaign-map-caption">第七装甲旅 <span> / </span> 联合作战态势图</div>
             {scenarios.map(s=>{
               const index=SCENARIOS.findIndex(item=>item.id===s.id),[x,y]=POSITIONS[index];
-              return <button key={s.id} className={`campaign-node ${s.story?'story-node':''} ${current?.id===s.id?'is-inspected':''}`} style={{left:`${x}%`,top:`${y}%`}} data-testid={`deploy-${s.id}`} aria-label={`进入${s.name}`} onMouseEnter={()=>setInspected(s.id)} onFocus={()=>setInspected(s.id)} onClick={()=>onDeploy(s.id,difficulty,formationFor(s))}>
-                <span className="node-marker">{String(index+1).padStart(2,'0')}</span><span className="node-label">{s.name}<small>{s.mission?.kind==='breakthrough'?'穿越剧情':s.mission?.outposts?'护送剧情':s.story?'战史行动':'常规作战'}{index>=9?' · NEW':''}</small></span>
+              const cleared=Boolean(progress[progressKey(s.id,difficulty)]);
+              return <button key={s.id} className={`campaign-node ${s.story?'story-node':''} ${current?.id===s.id?'is-inspected':''} ${cleared?'is-completed':''}`} style={{left:`${x}%`,top:`${y}%`}} data-testid={`deploy-${s.id}`} aria-label={`进入${s.name}${cleared?'，已通关':''}`} onMouseEnter={()=>setInspected(s.id)} onFocus={()=>setInspected(s.id)} onClick={()=>onDeploy(s.id,difficulty,formationFor(s))}>
+                <span className="node-marker">{String(index+1).padStart(2,'0')}{cleared&&<i aria-hidden="true">✓</i>}</span><span className="node-label">{s.name}<small>{s.mission?.kind==='breakthrough'?`${s.allyCount}车穿越 · 保住${s.mission.required}辆`:s.mission?.outposts?'护送行动':s.story?'战史行动':'常规作战'}{cleared?' · ✓':''}</small></span>
               </button>;
             })}
           </div>
         </div>
         {scenarios.length===0&&<div className="campaign-empty" role="status"><h2>未找到匹配的战区</h2><button onClick={()=>{setFilter('all');setSearch('');}}>重置筛选 →</button></div>}
-        <div className="campaign-map-footer"><span><i/> 常规作战 <i className="gold"/> 剧情行动</span><span>点击据点进入战斗 · 窄屏可横向滑动地图</span></div>
+        <div className="campaign-map-footer"><span><i/> 常规作战 <i className="gold"/> 剧情行动</span><span aria-live="polite">显示 {scenarios.length} 个战区 · 点击据点部署 · 窄屏可横向滑动</span></div>
       </section>
       <aside className="campaign-brief" aria-label="部署与战区情报">
         <div className="campaign-settings"><div className="eyebrow">DEPLOYMENT / 部署设置</div><div className="deployment-options">
           <label><span>作战难度</span><select aria-label="作战难度" value={difficulty} onChange={e=>setDifficulty(e.target.value)}>{Object.values(DIFFICULTIES).map(d=><option key={d.id} value={d.id}>{d.label}</option>)}</select></label>
           <label><span>我方组合</span><select aria-label="我方组合" value={formation} onChange={e=>setFormation(e.target.value)}><option value="recommended">关卡推荐</option>{Object.entries(FORMATIONS).map(([id,f])=><option key={id} value={id}>{f.name}</option>)}</select></label>
         </div></div>
-        {current&&<div className="campaign-intel">
+        {current&&<div className="campaign-intel" key={current.id}>
           <div className="campaign-preview"><ScenarioPreview id={current.id} difficulty={difficulty} formationId={formationFor(current)}/><span>地形侦察 / TERRAIN RECON</span></div>
           <div className="eyebrow">{current.subtitle}</div><h2>{current.name}</h2><p className="campaign-description">{current.briefing}</p>
           <p className="campaign-objective"><span>行动目标</span>{current.objective}</p>
-          <div className="campaign-forces"><span>我方 <b>09</b></span><span>敌方 <b>{String(enemyCountFor(current.enemyCount,difficulty)).padStart(2,'0')}</b></span><span>{FORMATIONS[formationFor(current)].name}</span></div>
+          <p className="campaign-direction">{current.direction}{isCrossing(current)&&' · 山林遮蔽 · 沿途遭遇'}</p>
+          {record&&<p className="campaign-record">✓ 本难度已通关 <span>最佳 {record.rounds} 回合 · 存活 {record.survivors} / {current.allyCount}</span></p>}
+          <div className="campaign-forces"><span>我方 <b>{String(current.allyCount).padStart(2,'0')}</b></span><span>敌方 <b>{String(enemyCountFor(current.enemyCount,difficulty)).padStart(2,'0')}</b></span><span>{FORMATIONS[formationFor(current)].name}</span></div>
           <button className="primary" onClick={()=>onDeploy(current.id,difficulty,formationFor(current))}>进入{current.name} <span>↗</span></button>
           <small className="campaign-hint">悬停或聚焦据点查看情报，点击即可部署。</small>
         </div>}

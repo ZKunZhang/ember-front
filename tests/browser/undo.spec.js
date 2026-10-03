@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 
 test('undo restores movement and an enemy round, and redeployment clears history',async({page})=>{
   await page.goto('/operations');await page.getByTestId('deploy-mountain-pass').click();
-  const undo=page.getByRole('button',{name:'↶ 撤回',exact:true});
+  const undo=page.getByRole('button',{name:'撤回',exact:true});
   await expect(undo).toBeDisabled();
   const point=await page.evaluate(async()=>{
     const {createState}=await import('/src/game/engine.js');

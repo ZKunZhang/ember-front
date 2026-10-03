@@ -70,9 +70,9 @@ test('mobile library and battlefield remain within viewport',async({page})=>{
 
 test('visible enemy click fires directly and shows intel without a mode switch',async({page})=>{
   // Place one enemy in initial sight so this test does not depend on AI movement.
-  await page.route('**/src/game/scenarios.js*',async route=>{
+  await page.route('**/src/game/engine.js*',async route=>{
     const response=await route.fetch();
-    const body=(await response.text()).replace(/const RED_SOUTH\s*=\s*\[\s*\[\s*7\s*,\s*14\s*\]/,'const RED_SOUTH = [[16,3]');
+    const body=(await response.text()).replace(/updateMission\(s\);\s*return s;/,`updateMission(s); Object.assign(s.units.find(u=>u.team==='red'),{x:16,y:3}); updateFog(s); return s;`);
     await route.fulfill({response,body});
   });
   await page.goto('/operations');await page.getByTestId('deploy-mountain-pass').click();
@@ -104,7 +104,7 @@ test('visible enemy click fires directly and shows intel without a mode switch',
     const overlaps=await page.evaluate(()=>{
       const intersect=(a,b)=>Math.min(a.right,b.right)>Math.max(a.left,b.left)+1&&Math.min(a.bottom,b.bottom)>Math.max(a.top,b.top)+1;
       const panels=[...document.querySelectorAll('.command-panels>section')].map(e=>e.getBoundingClientRect());
-      const controls=document.querySelector('.map-controls').getBoundingClientRect(),hint=document.querySelector('.map-command-hint').getBoundingClientRect();
+      const controls=document.querySelector('.unit-actions').getBoundingClientRect(),hint=document.querySelector('.map-command-hint').getBoundingClientRect();
       return {panels:panels.some((a,i)=>panels.slice(i+1).some(b=>intersect(a,b))),toolbar:intersect(controls,hint),overflow:document.documentElement.scrollWidth>innerWidth};
     });
     expect(overlaps).toEqual({panels:false,toolbar:false,overflow:false});
@@ -140,6 +140,7 @@ for(const gesture of ['drag','trackpad','vertical-trackpad','touch'])test(`map p
   await page.goto('/operations');await page.getByTestId('deploy-mountain-pass').click();
   const map=page.locator('#map'),r=await map.boundingBox();
   const start={x:r.x+r.width/2,y:r.y+220};
+  expect(await page.evaluate(point=>document.elementFromPoint(point.x,point.y)?.id,start)).toBe('map');
   let dx=100,dy=0;
   if(gesture==='drag'){
     await page.mouse.move(start.x,start.y);await page.mouse.down();
@@ -158,6 +159,7 @@ for(const gesture of ['drag','trackpad','vertical-trackpad','touch'])test(`map p
     await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
     await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:false});
   }
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await expect(page.locator('#move-mode')).toContainText('移动');
   const destination=await page.evaluate(async ({dx,dy})=>{
     const {createState}=await import('/src/game/engine.js');
@@ -175,12 +177,15 @@ for(const gesture of ['drag','trackpad','vertical-trackpad','touch'])test(`map p
 
 test('dense diagonal vehicle models select the hovered unit without moving it',async({page})=>{
   await page.goto('/operations');await page.getByTestId('deploy-mountain-pass').click();
+  // Keep vehicle models clear of fixed corner commands when testing hit shapes.
+  await page.locator('#map').dispatchEvent('wheel',{deltaY:160,deltaMode:0});
   for(const zoom of [1.15,1.35]){
     if(zoom>1.15)await page.locator('#map').dispatchEvent('wheel',{deltaY:-Math.log(1.35/1.15)/.006,ctrlKey:true});
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const points=await page.evaluate(async zoom=>{
       const {createState}=await import('/src/game/engine.js');
       const {createView,project,DEFAULT_ZOOM,VEHICLE_SCALE}=await import('/src/rendering/projection.js');
-      const s=createState(),r=document.querySelector('#map').getBoundingClientRect(),v=createView(s,r.width,r.height,zoom);
+      const s=createState(),r=document.querySelector('#map').getBoundingClientRect(),v=createView(s,r.width,r.height,zoom,{x:0,y:-160});
       return s.units.filter(u=>u.team==='blue').map(u=>{
         const p=project(v,u.x+.5,u.y+.5,(u.type==='scout'?10:u.type==='heavyTank'?24:17)*VEHICLE_SCALE);
         return{id:u.id,name:u.name,x:r.left+p.x,y:r.top+p.y};

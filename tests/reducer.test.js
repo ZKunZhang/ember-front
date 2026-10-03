@@ -31,7 +31,7 @@ test('last movement ignores destroyed vehicles and starts exactly one enemy turn
 
 test('manual fire damages only the chosen target and completes the turn',()=>{
   const s=initialGame(),blue=s.units[0],reds=s.units.filter(u=>u.team==='red').slice(0,2);
-  s.units=[blue,...reds];blue.moved=true;s.mode='attack';
+  s.units=[blue,...reds];s.mission=null;blue.moved=true;s.mode='attack';
   reds[0].x=16;reds[0].y=3;reds[0].hp=1;
   reds[1].x=17;reds[1].y=2;
   s.fog[3][16]=false;s.fog[2][17]=false;
@@ -42,7 +42,7 @@ test('manual fire damages only the chosen target and completes the turn',()=>{
 
 test('manual victory never starts enemy actions',()=>{
   const s=initialGame(),blue=s.units[0],red=s.units.find(u=>u.team==='red');
-  s.units=[blue,red];blue.moved=true;s.mode='attack';red.x=16;red.y=3;red.hp=1;s.fog[3][16]=false;
+  s.units=[blue,red];s.mission=null;blue.moved=true;s.mode='attack';red.x=16;red.y=3;red.hp=1;s.fog[3][16]=false;
   const next=gameReducer(s,{type:'CELL',x:16,y:3});
   assert.equal(next.winner,'blue');assert.equal(next.turn,'blue');assert.deepEqual(next.enemyQueue,[]);
 });
@@ -207,7 +207,7 @@ test('reset clears undo history',()=>{
 
 test('undo restores a lethal shot, victory, fog and the firing allowance',()=>{
   const s=initialGame(),blue=s.units[0],red=s.units.find(u=>u.team==='red');
-  s.units=[blue,red];red.x=16;red.y=3;red.hp=1;s.fog[3][16]=false;
+  s.units=[blue,red];s.mission=null;red.x=16;red.y=3;red.hp=1;s.fog[3][16]=false;
   const shot=gameReducer(s,{type:'CELL',x:16,y:3});
   assert.equal(shot.winner,'blue');
   const restored=gameReducer(shot,{type:'UNDO'});

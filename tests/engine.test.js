@@ -18,18 +18,18 @@ function terrainRoute(s,from,to) {
 test('six ground vehicle types and all scenario forces have legal unique deployments',()=>{
   assert.deepEqual(Object.keys(UNIT_TYPES),['scout','tank','heavyTank','artillery','rocket','engineer']);
   for(const meta of SCENARIOS){const s=createState(meta.id,'hard'),blue=s.units.filter(u=>u.team==='blue'),red=s.units.filter(u=>u.team==='red');
-    assert.equal(blue.length,9);assert.equal(red.length,meta.enemyCount);assert.equal(new Set(blue.map(u=>u.type)).size,6);
+    assert.equal(blue.length,meta.allyCount);assert.equal(red.length,meta.enemyCount);assert.ok(new Set(blue.map(u=>u.type)).size>=4);assert.ok(blue.some(u=>u.type==='engineer'));
     assert.equal(new Set(s.units.map(u=>`${u.x},${u.y}`)).size,s.units.length);
     assert.ok(s.units.every(u=>passable(s,u.x,u.y)));assert.ok(s.terrain.flat().includes(-1));
     for(const u of red)assert.ok(terrainRoute(s,blue[0],u));
   }
 });
 test('mountain pass and north road are independent, both bridges are useful',()=>{
-  const s=createState('mountain-pass'),from=s.units[0],to=s.units[9];
+  const s=createState('mountain-pass'),from=s.units[0],to=s.mission.points[0];
   for(let x=10;x<=12;x++)s.terrain[11][x]=1;
   const route=terrainRoute(s,from,to);assert.ok(route);assert.ok(route.some(p=>p.x===11&&p.y<=5));
-  for(const blocked of [5,12]){const b=createState('twin-bridges');for(let x=10;x<=12;x++)b.terrain[blocked][x]=4;const path=terrainRoute(b,b.units[0],b.units[9]);assert.ok(path);assert.ok(path.some(p=>p.x===11&&p.y===(blocked===5?12:5)));}
-  const b=createState('twin-bridges');for(const y of [5,12])for(let x=10;x<=12;x++)b.terrain[y][x]=4;assert.equal(terrainRoute(b,b.units[0],b.units[9]),null);
+  for(const blocked of [5,12]){const b=createState('twin-bridges');for(let x=10;x<=12;x++)b.terrain[blocked][x]=4;const path=terrainRoute(b,b.units[0],b.mission.points[0]);assert.ok(path);assert.ok(path.some(p=>p.x===11&&p.y===(blocked===5?12:5)));}
+  const b=createState('twin-bridges');for(const y of [5,12])for(let x=10;x<=12;x++)b.terrain[y][x]=4;assert.equal(terrainRoute(b,b.units[0],b.mission.points[0]),null);
 });
 test('BFS never crosses mountains, woodland, water, void or known units',()=>{
   const s=state([unit(1,'blue','scout',3,3),unit(2,'red','tank',2,3)]);s.terrain[3][4]=1;s.terrain[2][3]=4;s.terrain[4][3]=-1;
@@ -53,7 +53,7 @@ test('fog blocks attack without consuming a shot, reconnaissance enables it',()=
 test('direct fire blocked by mountains, indirect fire has minimum range, armor floors damage',()=>{
   const a=unit(1,'blue','tank',1,2),b=unit(2,'red','tank',4,2),s=state([a,b]);s.terrain[2][3]=1;
   assert.equal(clearShot(s,a,b),false);assert.equal(attackUnit(s,1,2).ok,false);
-  Object.assign(a,UNIT_TYPES.artillery,{type:'artillery'});updateFog(s);assert.equal(clearShot(s,a,b),true);assert.equal(attackUnit(s,1,2).ok,true);
+  Object.assign(a,UNIT_TYPES.artillery,{type:'artillery'});s.units.push(unit(3,'blue','scout',4,4));updateFog(s);assert.equal(clearShot(s,a,b),true);assert.equal(attackUnit(s,1,2).ok,true);
   a.fired=false;b.x=2;assert.equal(attackUnit(s,1,2).ok,false);assert.equal(a.fired,false);assert.equal(damageFor({attack:2},{armor:3}),1);
 });
 test('repair requires engineer, adjacency, living damaged ally and consumes fire action',()=>{

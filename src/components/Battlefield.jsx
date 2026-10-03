@@ -1,7 +1,8 @@
 import { useBattlefield } from '../hooks/useBattlefield.js';
 import FogLayer from './FogLayer.jsx';
+import BattleResult from './BattleResult.jsx';
 
-export default function Battlefield({ game, onCell, onReset, onUndo }) {
+export default function Battlefield({ game, onCell, onReset, onUndo, onExit, onNext, nextScenario }) {
   const {
     canvasRef,
     view,
@@ -10,6 +11,9 @@ export default function Battlefield({ game, onCell, onReset, onUndo }) {
     dragging,
     pointerHandlers,
   } = useBattlefield(game, onCell);
+  const living=game.units.filter(unit=>unit.team==='blue'&&unit.hp>0);
+  const lastMove=living.filter(unit=>!unit.moved).length===1;
+  const remainingFire=living.filter(unit=>!unit.fired).length;
   return (
     <section className="battlefield">
       <div className="map-top">
@@ -35,35 +39,7 @@ export default function Battlefield({ game, onCell, onReset, onUndo }) {
         <div className="north">
           推进<span>↑</span>
         </div>
-        {game.winner && (
-          <div className="result" role="status">
-            <span>
-              {game.winner === 'blue'
-                ? 'MISSION ACCOMPLISHED'
-                : 'OPERATION ENDED'}
-            </span>
-            <h2>
-              {game.winner === 'blue'
-                ? game.mission
-                  ? '任务目标达成'
-                  : '战区已肃清'
-                : '行动失败'}
-            </h2>
-            <p>
-              {game.winner === 'blue'
-                ? `第 ${game.turnNumber} 回合 · ${game.mission ? '任务目标达成' : '敌军全部歼灭'}`
-                : '行动目标未能达成，请调整部署战术。'}
-            </p>
-            {game.story && (
-              <p>
-                {game.winner === 'blue'
-                  ? game.story.success
-                  : game.story.failure}
-              </p>
-            )}
-            <button onClick={onReset}>重新部署</button>
-          </div>
-        )}
+        {game.winner && <BattleResult game={game} nextScenario={nextScenario} onNext={onNext} onReset={onReset} onExit={onExit} onUndo={onUndo}/>}
       </div>
       <div className="map-toolbar">
         <button
@@ -77,12 +53,14 @@ export default function Battlefield({ game, onCell, onReset, onUndo }) {
           <span aria-hidden="true">↶</span><small>撤回</small>
         </button>
         <div className="map-command-hint">
-          {game.turn === 'red'
+          {game.winner ? '行动结束 · 查看战报或撤回最后一步' : game.turn === 'red'
             ? '敌方行动中…'
             : game.mode === 'attack'
               ? '攻击模式 · 点击射程内可见敌军'
             : game.mode === 'repair'
               ? '维修模式 · 点击相邻受损友军；点击敌军开火'
+              : lastMove && remainingFire > 0
+                ? `最后一次移动将自动结束回合 · 请先完成 ${remainingFire} 次可用开火 / 维修`
               : '点击蓝格移动 · 点击敌军开火并查看情报'}
         </div>
       </div>

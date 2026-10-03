@@ -1,4 +1,4 @@
-import { BLUE_FORMATION } from './catalog.js';
+import { BLUE_FORMATION, UNIT_TYPES } from './catalog.js';
 import { DEFAULT_DIFFICULTY, enemyCountFor, getDifficulty } from './difficulty.js';
 
 export const FORMATIONS = {
@@ -8,19 +8,28 @@ export const FORMATIONS = {
   artillery: { name: '炮击编组', description: '远程火力密集，依靠侦察车校射。', types: ['scout','artillery','rocket','artillery','engineer','scout','rocket','tank','heavyTank'] },
 };
 
+const crossing = required => ({ kind: 'breakthrough', required, points: [
+  [3,14],[4,14],[3,15],[4,15],[5,14],[5,15],
+].map(([x,y],i)=>({x,y,label:`撤离位 ${String.fromCharCode(65+i)}`})) });
+
 export const SCENARIOS = [
   { id: 'mountain-pass', name: '断脊山隘', subtitle: 'BROKEN RIDGE', direction: '由下向上推进', difficulty: '标准', enemyCount: 14, formationId: 'balanced',
-    briefing: '中央山脉挡住正面推进。选择穿越一格宽的山隘，或沿北侧公路迂回包抄。', objective: '歼灭全部敌军', routes: ['中央隘口：路短，易遭集火', '北侧公路：路长，适合机动部队'] },
+    allyCount: 9, mission: crossing(5),
+    briefing: '带领9辆车穿越断脊山脉，至少5辆抵达对侧撤离区。哨兵藏在山隘和林缘，山体会挡住视线；侦察车先探路，不必全歼敌军。', objective: '带9辆车出发，至少5辆抵达撤离区', routes: ['中央隘口：路短，转弯后可能遭遇守军', '山脉外沿：绕行较远，可避开部分哨卡'] },
   { id: 'diagonal-valley', name: '长风峡谷', subtitle: 'WINDWARD VALLEY', direction: '由下向上推进', difficulty: '进阶', enemyCount: 16, formationId: 'mobile',
-    briefing: '沿斜向峡谷向东北推进。两道山岭之间留有中部缺口，侧翼道路可以绕开狭窄地带。', objective: '歼灭全部敌军', routes: ['中部缺口：直达敌军前沿', '侧翼山道：绕开中央山岭'] },
+    allyCount: 7, approach: 'northwest', mission: crossing(4),
+    briefing: '7辆车从左上方进入峡谷，至少4辆穿过错位山口抵达右下接应区。守军分散在山背和岔路，绕过山体后才能发现。', objective: '带7辆车穿越峡谷，至少4辆安全抵达', routes: ['峡谷缺口：近路，逐段侦察', '侧翼山道：较远，利用山体掩护'] },
   { id: 'twin-bridges', name: '双桥河湾', subtitle: 'TWIN CROSSINGS', direction: '由下向上推进', difficulty: '挑战', enemyCount: 18, formationId: 'armored',
-    briefing: '河流将战区分成两岸，地面部队只能通过两座桥。侦察车寻找突破口，工程车为桥头装甲部队提供维修。', objective: '歼灭全部敌军', routes: ['北桥：宽阔入口，利于展开', '南桥：狭窄捷径，争夺激烈'] },
+    allyCount: 9, approach: 'southeast', mission: crossing(6),
+    briefing: '9辆车从右下方出发，至少6辆渡河抵达左上撤离区。两座桥都有可能遇敌，装甲先占桥头，工程车照顾受损车辆。', objective: '带9辆车渡河，至少6辆抵达对岸撤离区', routes: ['第一座桥：尽早渡河，沿对岸行军', '第二座桥：绕行接近终点，注意林后哨卡'] },
   { id: 'forest-corridor', name: '林海走廊', subtitle: 'FOREST CORRIDOR', direction: '由下向上推进', difficulty: '标准', enemyCount: 14, formationId: 'mobile',
-    briefing: '密林切割战场，侦察车必须先行发现敌情；两条林间通道适合快速穿插。', objective: '歼灭全部敌军', routes: ['西侧林道：机动快捷', '东侧林缘：视野开阔，适合迂回'] },
+    allyCount: 6, approach: 'northeast', mission: crossing(4),
+    briefing: '6辆轻装车辆从右上方出发，至少4辆穿过连片森林抵达左下接应区。树林遮挡视线，侦察车在林间转角可能先发现埋伏。', objective: '带6辆车穿越林海，至少4辆抵达接应区', routes: ['林间通道：近路，转角多、视线短', '外围林缘：路程较长，便于绕过伏兵'] },
   { id: 'broken-basin', name: '碎岩盆地', subtitle: 'BROKEN BASIN', direction: '由下向上推进', difficulty: '进阶', enemyCount: 16, formationId: 'armored',
     briefing: '碎岩与高地形成天然防线，装甲部队需要在两处缺口集中突破。', objective: '歼灭全部敌军', routes: ['中央裂口：装甲正面突破', '东侧坡道：较慢但便于展开'] },
   { id: 'lake-crossroads', name: '环湖交锋', subtitle: 'LAKE CROSSROADS', direction: '由下向上推进', difficulty: '挑战', enemyCount: 18, formationId: 'artillery',
-    briefing: '湖岸限制地面机动，炮兵可从两条堤岸路线支援前线。', objective: '歼灭全部敌军', routes: ['西堤：短线接敌，适合坦克', '东堤：开阔射界，适合炮兵'] },
+    allyCount: 8, approach: 'northwest', mission: crossing(5),
+    briefing: '8辆支援车辆从左上方进入湖区，至少5辆沿堤岸抵达右下出口。敌军扼守沿途林缘，远程火力掩护纵队通过即可。', objective: '带8辆车绕湖转移，至少5辆抵达出口', routes: ['近侧堤岸：短线穿越，注意林缘', '远侧堤岸：展开支援，掩护车队'] },
   { id: 'alamein-breakthrough', name: '阿拉曼突破', subtitle: 'ALAMEIN BREAKTHROUGH', direction: '由下向上推进', difficulty: '标准', enemyCount: 14, formationId: 'balanced',
     briefing: '穿过沙丘防线缺口，夺取两处集结点，为装甲纵队打开通路。', objective: '夺取两处集结点', routes: ['西侧缺口：较短但暴露', '东侧沙丘：绕行后再合流'],
     story: { chapter: '战史改编 · 01', history: '第二次阿拉曼战役于1942年10月23日至11月4日成为北非战局转折。', sourceUrl: 'https://www.nam.ac.uk/explore/battle-alamein', intro: '虚构的前线连队必须穿过沙丘防线，夺取两个集结点并为后续攻势打开缺口。', success: '虚构的装甲纵队在两个集结点会合，沙海中的突破口终于稳住。', failure: '虚构的连队未能完成两处集结点的接应，敌军重新封锁了沙丘通道。' },
@@ -34,11 +43,14 @@ export const SCENARIOS = [
     story: { chapter: '战史改编 · 03', history: '突出部战役于1944年12月由德国在阿登发动进攻。', sourceUrl: 'https://www.nps.gov/places/battle-of-the-bulge.htm', intro: '虚构的守军必须在雪林观察点坚守，直到援军穿过被突破的防线。', success: '虚构的守军击退了林地攻势，阿登防线的威胁已经解除。', failure: '虚构的观察点失守，敌军的突袭撕开了雪林防线。' },
     mission: { kind: 'hold', point: { x: 15, y: 6, label: '林地观察点' }, turns: 4 } },
   { id: 'iron-gorge', name: '铁壁峡口', subtitle: 'IRON GORGE', direction: '由下向上推进', difficulty: '进阶', enemyCount: 16, formationId: 'armored',
-    briefing: '三道石岭封锁峡口。重装编队沿错开的缺口逐段突破，也可从北缘公路迂回敌后。', objective: '歼灭全部敌军', routes: ['错位隘口：逐段推进，注意火力衔接', '北缘公路：绕过石岭，侧击敌后'] },
+    allyCount: 9, approach: 'northeast', mission: crossing(6),
+    briefing: '9辆重装车辆从右上方穿越三道连绵石岭，至少6辆抵达左下出口。山后的守军只在接敌后出动，保住队形逐段前进。', objective: '带9辆车突破峡口，至少6辆通过封锁', routes: ['错位隘口：逐段前进，侦察转角', '外沿公路：绕过石岭，保存兵力'] },
   { id: 'reed-crossing', name: '苇河渡口', subtitle: 'REED CROSSING', direction: '由下向上推进', difficulty: '挑战', enemyCount: 18, formationId: 'mobile',
-    briefing: '两条水道夹住狭长河洲。争夺交错桥梁，在河洲重新集结后突破第二道防线。', objective: '歼灭全部敌军', routes: ['中部桥群：距离短，需分段掩护', '南侧长桥：路线宽，便于装甲展开'] },
+    allyCount: 7, approach: 'southeast', mission: crossing(4),
+    briefing: '7辆车从右下方驶入河洲，至少4辆通过交错桥梁抵达左上接应区。对岸林带遮住守军，渡河前先确认视野。', objective: '带7辆车通过渡口，至少4辆抵达接应区', routes: ['交错桥群：分段渡河，互相掩护', '外围长桥：绕行展开，避开部分守军'] },
   { id: 'pine-highlands', name: '松岭猎场', subtitle: 'PINE HIGHLANDS', direction: '由下向上推进', difficulty: '标准', enemyCount: 14, formationId: 'artillery',
-    briefing: '松林与孤立岩峰遮蔽敌军。侦察车沿环形道路点亮视野，远程火力从林间空地压制守军。', objective: '歼灭全部敌军', routes: ['中央林间路：快速接敌，需先侦察', '外围环路：分散推进，建立交叉火力'] },
+    allyCount: 6, approach: 'northwest', mission: crossing(3),
+    briefing: '6辆侦察支援车从左上方出发，至少3辆穿过松林和岩岭抵达右下出口。敌军分队藏在林后的空地，保持侦察车领先。', objective: '带6辆车穿越松岭，至少3辆安全抵达', routes: ['林间道路：快速通过，小心转角', '外围环路：路线较远，便于脱离交火'] },
   { id: 'red-sand-loop', name: '赤沙回廊', subtitle: 'RED SAND LOOP', direction: '由下向上推进', difficulty: '标准', enemyCount: 14, formationId: 'mobile',
     briefing: '两片岩台夹住中央回廊。机动部队可沿中路快速接敌，或借北侧环路绕到守军侧翼；岩台会遮挡直射火力。', objective: '歼灭全部敌军', routes: ['中央回廊：通道宽，快速切入', '北侧环路：绕过岩台，侧翼展开'] },
   { id: 'stone-bay-bridges', name: '石湾三桥', subtitle: 'STONE BAY BRIDGES', direction: '由下向上推进', difficulty: '进阶', enemyCount: 16, formationId: 'balanced',
@@ -46,9 +58,11 @@ export const SCENARIOS = [
   { id: 'sawtooth-line', name: '锯齿防线', subtitle: 'SAWTOOTH LINE', direction: '由下向上推进', difficulty: '挑战', enemyCount: 18, formationId: 'artillery',
     briefing: '横向石岭的缺口交错分布，直线推进会被山体截断。侦察车寻找目标，炮兵越岭支援；也可沿东缘长路绕过防线。', objective: '歼灭全部敌军', routes: ['交错缺口：逐段转进，炮兵越障掩护', '东缘长路：绕行距离长，可避开中央瓶颈'] },
   { id: 'mistwood-forks', name: '雾林岔路', subtitle: 'MISTWOOD FORKS', direction: '由下向上推进', difficulty: '标准', enemyCount: 14, formationId: 'balanced',
-    briefing: '三条林带将战场分割成多段走廊。沿中央林道侦察推进，或从南侧通道切入敌军阵地，避免远程单位脱离掩护。', objective: '歼灭全部敌军', routes: ['中央林道：穿过三处缺口，逐段侦察', '南侧通道：绕过林带，接近敌军侧翼'] },
+    allyCount: 6, approach: 'northeast', mission: crossing(4),
+    briefing: '6辆车从右上方进入雾林，至少4辆抵达左下出口。连片森林隔开岔路，警戒分队在转角后驻守；发现敌军时车队会暂停推进。', objective: '带6辆车通过雾林，至少4辆抵达出口', routes: ['中央林道：穿越连续林区，逐段侦察', '外缘通道：绕过树林，避免连续交火'] },
   { id: 'atoll-causeway', name: '环礁堤道', subtitle: 'ATOLL CAUSEWAY', direction: '由下向上推进', difficulty: '进阶', enemyCount: 16, formationId: 'mobile',
-    briefing: '中央湖泊围住一座小岛，东西堤道把岛屿接向两岸。可争夺岛心通路，也可沿湖泊南北两端绕行，从不同方向逼近敌军。', objective: '歼灭全部敌军', routes: ['岛心堤道：路线直接，通行空间有限', '南北环岸：绕湖展开，分散敌方火力'] },
+    allyCount: 7, approach: 'southeast', mission: crossing(5),
+    briefing: '7辆车从右下方出发，至少5辆跨越环礁抵达左上接应区。可借岛心堤道快速通过，也可沿外岸避开守军，不必夺下所有阵地。', objective: '带7辆车跨越环礁，至少5辆抵达接应区', routes: ['岛心堤道：路线直接，小心前后封锁', '外岸绕行：保存兵力，绕过守军'] },
   { id: 'faultline-fortress', name: '断层要塞', subtitle: 'FAULTLINE FORTRESS', direction: '由下向上推进', difficulty: '挑战', enemyCount: 18, formationId: 'armored',
     briefing: '两道折角岩墙包住敌军阵地，东面与北面各留有缺口。重装部队吸收正面火力，工程车随队维修，再穿过内墙压缩守军空间。', objective: '歼灭全部敌军', routes: ['东侧双隘：距离较短，集中装甲突破', '北侧双隘：迂回进入，形成侧翼火力'] },
   { id: 'silent-transit', name: '静默穿越', subtitle: 'SILENT TRANSIT', direction: '穿越战场抵达撤离区', difficulty: '标准', enemyCount: 12, formationId: 'mobile',
@@ -71,15 +85,17 @@ export const SCENARIOS = [
     briefing: '工程保障车必须穿过河谷到达前方维修站。用装甲车辆掩护过桥，再由侦察单位确认出口；不要让工程车单独接敌。目标车损失立即失败。', objective: '护送工程车抵达维修站，保护其存活', routes: ['北桥通道：较早渡河，沿西岸推进', '南桥通道：依托东岸掩护，靠近终点渡河'],
     story: { chapter: '护送行动 · 02', intro: '前方维修站即将停止运转，最后一辆工程保障车正在赶往河谷。桥头与谷口分别有敌军驻守，护送队必须用装甲部队打开通路，并给工程车留下通过空间。', success: '工程车驶入维修站，河谷中的保障线路重新接通。', failure: '目标工程车被击毁，维修站失去了此次保障接应。' },
     mission: { kind: 'escort', outposts: true, point: {x:3,y:14,label:'河谷维修站'} } },
-];
+].map(meta=>({ ...meta, allyCount:meta.allyCount??9, approach:meta.approach??'southwest',
+  direction:({southwest:'左下出发 → 右上推进',northwest:'左上出发 → 右下穿越',southeast:'右下出发 → 左上穿越',northeast:'右上出发 → 左下穿越'})[meta.approach??'southwest'],
+}));
 const BLUE = [[17,3],[18,3],[19,3],[17,4],[18,4],[19,4],[17,5],[18,5],[19,5]];
 const RED_SOUTH = [[7,14],[8,14],[9,14],[7,15],[8,15],[9,15],[7,16],[8,16],[9,16],[6,14],[6,15],[6,16],[5,14],[5,15],[5,16],[6,13],[7,13],[8,13]];
 const RED_NORTH = [[2,5],[3,5],[4,5],[2,6],[3,6],[4,6],[2,7],[3,7],[4,7],[5,5],[5,6],[5,7],[6,5],[6,6],[6,7],[2,8]];
 const TYPES = BLUE_FORMATION;
 const RED_TYPES = [...TYPES, 'tank','heavyTank','artillery','rocket','scout','engineer','tank','artillery','heavyTank'];
 // Interleave the route's three outposts so easier settings retain encounters throughout the crossing.
-const CROSSING_PATROLS = [[14,7],[8,10],[5,13],[15,8],[7,11],[6,14],[13,6],[8,12],[5,15],[15,9],[6,10],[7,14],[13,8],[7,12],[6,15],[14,10]];
-const PATROL_TYPES = ['scout','tank','tank','tank','scout','heavyTank','tank','artillery','engineer','scout','tank','artillery','tank','heavyTank','artillery','tank'];
+const CROSSING_PATROLS = [[14,7],[8,10],[5,13],[15,8],[7,11],[6,14],[13,6],[8,12],[5,15],[15,9],[6,10],[7,14],[13,8],[7,12],[6,15],[14,10],[9,12],[6,13]];
+const PATROL_TYPES = ['scout','tank','tank','tank','scout','heavyTank','tank','artillery','engineer','scout','tank','artillery','tank','heavyTank','artillery','tank','tank','rocket'];
 
 export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFFICULTY, formationId) {
   const meta = SCENARIOS.find(s => s.id === id) || SCENARIOS[0];
@@ -110,9 +126,7 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
     [[8,8],[8,9],[14,9],[14,10],[15,10],[7,10]].forEach(([x,y])=>put(x,y,1));
     landmarks = [{ x: 11, y: 5, label: '北桥' }, { x: 11, y: 12, label: '南桥' }];
   } else if (meta.id === 'forest-corridor') {
-    for (let y = 4; y <= 13; y += 2) for (let x = 8; x <= 14; x += 2) {
-      if ((x + y) % 4 === 0) { put(x,y,2); put(x+1,y,2); put(x,y+1,2); put(x+1,y+1,2); }
-    }
+    for (let y = 4; y <= 13; y++) horizontal(y,8,15,2);
     horizontal(6, 5, 18, 3); horizontal(12, 5, 18, 3);
     vertical(5, 5, 14, 3); vertical(18, 5, 14, 3);
     landmarks = [{x:5,y:6,label:'西侧林道'}, {x:18,y:12,label:'东侧林缘'}];
@@ -133,8 +147,8 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
     vertical(12,6,13); vertical(5,6,14); vertical(18,5,13);
     landmarks = [{x:14,y:6,label:'东岸桥'},{x:10,y:9,label:'西岸桥'},{x:12,y:13,label:'南侧长桥'}];
   } else if (meta.id === 'pine-highlands') {
-    for (let y=5;y<=13;y+=3) for (let x=7;x<=15;x+=3) { put(x,y,2);put(x+1,y,2);put(x,y+1,2); }
-    [[9,8],[13,11],[10,5]].forEach(([x,y])=>put(x,y,1));
+    for (let y=5;y<=13;y++) horizontal(y,7,15,2);
+    for (let y=6;y<=8;y++) horizontal(y,9,11,1);
     horizontal(4,5,18);horizontal(14,5,18);horizontal(9,5,18);
     vertical(5,4,14);vertical(18,4,14);vertical(12,4,14);
     landmarks = [{x:12,y:9,label:'林间空地'},{x:5,y:4,label:'外围环路'}];
@@ -177,7 +191,7 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
     horizontal(5, 5, 18); vertical(18, 5, 13);
     landmarks = [{x:14,y:13,label:'外墙东隘'},{x:10,y:13,label:'内墙东隘'},{x:5,y:7,label:'北侧外隘'},{x:5,y:11,label:'北侧内隘'}];
   } else if (meta.id === 'silent-transit' || meta.id === 'engineer-relay') {
-    for (const x of [7, 11, 15]) for (let y = 5; y <= 13; y++) put(x, y, 2);
+    for (const x of [7, 11, 15]) for (let y = 5; y <= 13; y++) { put(x,y,2);put(x+1,y,2); }
     horizontal(3, 3, 18); horizontal(8, 3, 18); horizontal(14, 3, 18);
     vertical(3, 3, 15); vertical(18, 3, 14);
     if (meta.id === 'engineer-relay') {
@@ -189,12 +203,12 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
     horizontal(6, 3, 18); horizontal(12, 3, 18);
     vertical(3, 6, 15); vertical(18, 4, 12);
     if (meta.id === 'valley-lifeline') {
-      for (let y = 4; y <= 13; y++) { put(7,y,1); put(15,y,1); }
+      for (let y = 4; y <= 13; y++) { put(7,y,1); put(8,y,1); put(14,y,1); put(15,y,1); }
       horizontal(6,3,18); horizontal(12,3,18); horizontal(14,3,18);
     }
     landmarks = [{x:10,y:6,label:'北桥哨卡'},{x:10,y:12,label:'南桥哨卡'}];
   } else if (meta.id === 'last-convoy') {
-    for (let y = 1; y <= 13; y++) { put(12, y, 1); put(9, y, 1); }
+    for (let y = 1; y <= 13; y++) { put(12,y,1);put(13,y,1);put(8,y,1);put(9,y,1); }
     horizontal(7, 10, 18); vertical(10, 7, 11); horizontal(11, 3, 10);
     horizontal(14, 3, 18); vertical(18, 5, 14); vertical(3, 11, 15);
     landmarks = [{x:12,y:7,label:'第一封锁线'},{x:9,y:11,label:'第二封锁线'},{x:12,y:14,label:'南侧山道'}];
@@ -216,18 +230,43 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
     horizontal(6, 5, 18, 3); horizontal(10, 5, 18, 3); vertical(5, 6, 14, 3); vertical(18, 4, 12, 3);
     landmarks = [{ x: 11, y: 6, label: '北桥头' }, { x: 11, y: 10, label: '南桥' }];
   } else if (meta.id === 'ardennes-watch') {
-    for (let y = 4; y <= 13; y += 2) for (let x = 7; x <= 16; x += 3) { put(x, y, 2); if (y < 13) put(x, y + 1, 2); }
+    for (let y=4;y<=13;y++) horizontal(y,7,16,2);
     horizontal(7, 5, 18, 3); horizontal(12, 5, 18, 3); vertical(5, 6, 14, 3);
     landmarks = [{ x: 15, y: 6, label: '林地观察点' }, { x: 6, y: 12, label: '西侧坡线' }];
   }
-  [[7,7],[6,10],[14,7],[15,7],[8,13],[14,13],[16,14],[3,10],[16,2]].forEach(([x,y]) => {
-    if (terrain[y]?.[x] === 0) put(x, y, 2);
-  });
+  // Coherent woodland pockets replace the scattered single-tile decorations.
+  for(const [left,top,right,bottom] of [[3,8,4,11],[15,9,17,12]])
+    for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++)if(terrain[y][x]===0)put(x,y,2);
   for(const point of meta.mission?.points||(meta.mission?.point?[meta.mission.point]:[])) put(point.x,point.y,3);
   const outposts = meta.mission?.kind === 'breakthrough' || meta.mission?.outposts;
-  const red = (outposts ? CROSSING_PATROLS : meta.id === 'diagonal-valley' ? RED_NORTH : RED_SOUTH).slice(0, enemyCount);
-  const deployments = [...BLUE.map(([x,y],i)=>({team:'blue',type:formation.types[i],x,y})),
-    ...red.map(([x,y],i)=>({team:'red',type:(outposts ? PATROL_TYPES : RED_TYPES)[i],x,y}))];
+  const blue=BLUE.slice(0,meta.allyCount).map(([x,y],i)=>({team:'blue',type:formation.types[i],x,y}));
+  let red = (outposts ? CROSSING_PATROLS : meta.id === 'diagonal-valley' ? RED_NORTH : RED_SOUTH).slice(0, enemyCount);
+  if(outposts) {
+    // Place each patrol on connected ground beside cover, never punch isolated
+    // deployment holes into the mountain or disclose guards at the spawn point.
+    const seen=new Set(),queue=[blue[0]];
+    for(let i=0;i<queue.length;i++) {
+      const {x,y}=queue[i],key=`${x},${y}`;
+      if(seen.has(key)||![0,3].includes(terrain[y]?.[x]))continue;
+      seen.add(key);
+      queue.push({x:x-1,y},{x:x+1,y},{x,y:y-1},{x,y:y+1});
+    }
+    const occupied=new Set([...blue,...(meta.mission.points??[meta.mission.point])].map(p=>`${p.x},${p.y}`));
+    const candidates=[...seen].map(key=>{const [x,y]=key.split(',').map(Number);return {x,y};});
+    red=red.map(([ax,ay])=>{
+      const options=candidates.filter(p=>!occupied.has(`${p.x},${p.y}`)&&blue.every(u=>Math.abs(u.x-p.x)+Math.abs(u.y-p.y)>UNIT_TYPES[u.type].vision+1));
+      const score=p=>10*(Math.abs(p.x-ax)+Math.abs(p.y-ay))+([[p.x-1,p.y],[p.x+1,p.y],[p.x,p.y-1],[p.x,p.y+1]].some(([x,y])=>[1,2].includes(terrain[y]?.[x]))?0:8);
+      options.sort((a,b)=>score(a)-score(b)||a.x-b.x||a.y-b.y);
+      const p=options[0];
+      if(!p)throw new Error(`No connected patrol position in ${meta.id}`);
+      occupied.add(`${p.x},${p.y}`);return [p.x,p.y];
+    });
+  }
+  const deployments = [...blue,...red.map(([x,y],i)=>({team:'red',type:(outposts ? PATROL_TYPES : RED_TYPES)[i],x,y,...(outposts?{patrolGroup:i%3}: {})}))];
   for (const {x,y} of deployments) put(x,y,0);
-  return { ...meta, formationId: Object.entries(FORMATIONS).find(([,f])=>f===formation)?.[0] ?? meta.formationId, formationName: formation.name, difficultyId: difficulty.id, difficulty: difficulty.label, enemyCount, cols, rows, terrain, deployments, landmarks };
+  const flipX=['northwest','northeast'].includes(meta.approach),flipY=['southeast','northeast'].includes(meta.approach);
+  const transform=p=>({...p,x:flipX?cols-1-p.x:p.x,y:flipY?rows-1-p.y:p.y});
+  const mission=meta.mission?{...meta.mission,...(meta.mission.points?{points:meta.mission.points.map(transform)}:{point:transform(meta.mission.point)})}:undefined;
+  const oriented=Array.from({length:rows},(_,y)=>Array.from({length:cols},(_,x)=>terrain[flipY?rows-1-y:y][flipX?cols-1-x:x]));
+  return { ...meta, mission, formationId: Object.entries(FORMATIONS).find(([,f])=>f===formation)?.[0] ?? meta.formationId, formationName: formation.name, difficultyId: difficulty.id, difficulty: difficulty.label, enemyCount, cols, rows, terrain:oriented, deployments:deployments.map(unit=>({...transform(unit),heading:{x:(unit.team==='blue'?-1:1)*(flipX?-1:1),y:0}})), landmarks:landmarks.map(transform) };
 }

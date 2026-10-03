@@ -10,6 +10,7 @@ const position=unit=>({x:unit.x,y:unit.y});
 
 test('successful movement records the real route, and undo/reset clear animation',()=>{
   const game=initialGame(),unit=game.units[0];
+  game.units=game.units.filter(u=>u.team==='blue');game.mission=null;
   const path=[...reachable(game,unit).values()].find(path=>path.length>=3);
   const next=gameReducer(game,{type:'CELL',...path.at(-1)});
   assert.equal(next.movement.unitId,unit.id);
@@ -48,6 +49,7 @@ test('stopping at a hidden enemy never animates through the occupied tile',()=>{
 
 test('visible enemy movement follows passable cells; hidden routes produce no animation',()=>{
   const source=initialGame();
+  source.mission=null;
   source.terrain=source.terrain.map(row=>row.map(()=>0));
   source.units=[source.units[0],source.units.find(u=>u.team==='red')];
   const [blue,red]=source.units;

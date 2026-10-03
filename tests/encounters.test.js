@@ -1,3 +1,4 @@
+import { hexCorners } from '../src/game/hex.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SCENARIOS, FORMATIONS } from '../src/game/scenarios.js';
@@ -78,7 +79,12 @@ test('mountain tiles share elevated edges and meet walkable terrain at ground le
   const terrain=Array.from({length:5},()=>Array(5).fill(0));
   for(let y=1;y<=3;y++)for(let x=1;x<=3;x++)terrain[y][x]=1;
   const a=mountainMesh(terrain,1,2).flat(),b=mountainMesh(terrain,2,2).flat();
-  for(const p of a.filter(p=>p[0]===2))assert.ok(b.some(q=>q.every((value,i)=>value===p[i])));
+  const [start,end]=hexCorners(1,2);
+  for(const [x,y] of [start,[(start[0]+end[0])/2,(start[1]+end[1])/2],end]) {
+    const p=a.find(p=>p[0]===x&&p[1]===y);
+    assert.ok(p&&p[2]>0);
+    assert.ok(b.some(q=>q.every((value,i)=>value===p[i])));
+  }
   assert.ok(mountainHeight(terrain,2,2.5)>20);
   assert.equal(mountainHeight(terrain,1,2.5),0);
   assert.ok(a.every(p=>p[2]>=0&&p[2]<60));

@@ -1,5 +1,6 @@
 import { createPainter } from './primitives.js';
 import { createTerrainRenderer } from './terrain.js';
+import { hexCorners } from '../game/hex.js';
 
 // Bound backing-store memory on Retina displays without changing CSS coordinates.
 export function renderPixelRatio(width, height, deviceRatio = 1, budget = 4_000_000) {
@@ -27,7 +28,7 @@ export function createTerrainCache(makeCanvas = () => document.createElement('ca
         let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
         for (let y = 0; y < state.rows; y++) for (let x = 0; x < state.cols; x++) {
           if (state.terrain[y][x] < 0) continue;
-          for (const [a, b] of [[x,y],[x+1,y],[x+1,y+1],[x,y+1]]) {
+          for (const [a, b] of hexCorners(x,y)) {
             const point = p(a,b);
             left=Math.min(left,point.x);right=Math.max(right,point.x);
             top=Math.min(top,point.y);bottom=Math.max(bottom,point.y);
@@ -49,7 +50,7 @@ export function createTerrainCache(makeCanvas = () => document.createElement('ca
     details(ctx, view, state, x, y, hidden, draw, dpr) {
       if (![1,2,3].includes(state.terrain[y][x])) return;
       const { p } = createPainter(ctx,view);
-      const corners=[[x,y],[x+1,y],[x+1,y+1],[x,y+1]].map(([a,b])=>p(a,b));
+      const corners=hexCorners(x,y).map(([a,b])=>p(a,b));
       const left=Math.min(...corners.map(p=>p.x))-14*view.scale;
       const top=Math.min(...corners.map(p=>p.y))-60*view.scale;
       const width=Math.max(...corners.map(p=>p.x))-left+14*view.scale;

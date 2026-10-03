@@ -1,5 +1,6 @@
 import { project } from './projection.js';
 import { renderPixelRatio } from './cache.js';
+import { hexCorners } from '../game/hex.js';
 
 const TILE = 256;
 export const FOG_FRAME_INTERVAL = 1000 / 12;
@@ -33,7 +34,7 @@ export function createFogRenderer(makeCanvas = () => document.createElement('can
       let left=Infinity,right=-Infinity,top=Infinity,bottom=-Infinity;
       for(let y=0;y<state.rows;y++)for(let x=0;x<state.cols;x++) {
         if(state.terrain[y][x]<0||!state.fog[y][x])continue;
-        const corners=[[x,y],[x+1,y],[x+1,y+1],[x,y+1]].map(([a,b])=>project(origin,a,b));
+        const corners=hexCorners(x,y).map(([a,b])=>project(origin,a,b));
         cells.push(corners);
         for(const p of corners){left=Math.min(left,p.x);right=Math.max(right,p.x);top=Math.min(top,p.y);bottom=Math.max(bottom,p.y);}
       }

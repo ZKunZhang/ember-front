@@ -6,6 +6,7 @@ import { drawVehicleModel } from './vehicles.js';
 import { createTerrainRenderer } from './terrain.js';
 import { combatMotion, vehicleKick, drawCombat } from './combat.js';
 import { reachable, inFireRange, distance, onMap } from '../game/engine.js';
+import { HEX_DIRECTIONS, hexCorners, roundHex } from '../game/hex.js';
 
 const dataCache = new WeakMap();
 export function getBattlefieldData(state,preview=false) {
@@ -39,7 +40,7 @@ function drawTerrainGround(ctx,view,state) {
   ctx.beginPath();
   for(let y=0;y<state.rows;y++)for(let x=0;x<state.cols;x++) {
     if(!onMap(state,x,y))continue;
-    const corners=[[x,y],[x+1,y],[x+1,y+1],[x,y+1]].map(([a,b])=>p(a,b,-22));
+    const corners=hexCorners(x,y).map(([a,b])=>p(a,b,-22));
     corners.forEach((point,i)=>i?ctx.lineTo(point.x,point.y):ctx.moveTo(point.x,point.y));
     ctx.closePath();
   }
@@ -47,8 +48,10 @@ function drawTerrainGround(ctx,view,state) {
   ctx.restore();
   for(let y=0;y<state.rows;y++)for(let x=0;x<state.cols;x++) {
     if(!onMap(state,x,y))continue;
-    for(const [dx,dy,a,b] of [[1,0,[x+1,y],[x+1,y+1]],[0,-1,[x,y],[x+1,y]],[0,1,[x+1,y+1],[x,y+1]]]) {
+    const corners=hexCorners(x,y);
+    for(const [index,[dx,dy]] of HEX_DIRECTIONS.entries()) {
       if(onMap(state,x+dx,y+dy))continue;
+      const a=corners[index],b=corners[(index+1)%6];
       polygon([p(...a),p(...b),p(...b,-22),p(...a,-22)],dx?'#655b48':'#484638');
       for(const z of [-7,-14,-21])line(p(...a,z),p(...b,z),'#25362b88',.8);
       line(p(...a),p(...b),'#a79974',1.7);
@@ -113,12 +116,13 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
     ctx.fillStyle=fill;ctx.fill('evenodd');ctx.strokeStyle=color;ctx.lineWidth=1.4*scale;ctx.stroke();ctx.restore();
   }
   function marker(x,y,color,fill) {
+    tile(x,y,fill,color,.065,1,1.5);
     const center=p(x+.5,y+.5,1),radius=Math.abs(p(x+.5,y+1).x-p(x+.5,y).x)*.42;
     ctx.save();ctx.translate(center.x,center.y);ctx.scale(1,view.th*.43/radius);
     const glow=ctx.createRadialGradient(0,0,radius*.25,0,0,radius*1.25);
     glow.addColorStop(0,fill);glow.addColorStop(.7,fill);glow.addColorStop(1,'#0000');
     ctx.fillStyle=glow;ctx.beginPath();ctx.arc(0,0,radius*1.25,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle=color;ctx.lineWidth=1.3*scale;ctx.beginPath();ctx.arc(0,0,radius,0,Math.PI*2);ctx.stroke();ctx.restore();
+    ctx.restore();
   }
 
   if(cache){
@@ -157,7 +161,7 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
     const unit=state.units.find(u=>u.id===movement.unitId&&u.hp>0);
     if(!unit||reducedMotion)continue;
     const position=movementPosition(unit,movements,now);
-    const x=Math.floor(position.x),y=Math.floor(position.y);
+    const {x,y}=roundHex(position.x,position.y);
     movingIds.add(unit.id);
     if(unit.team==='red'&&state.fog[y]?.[x])continue;
     const key=`${x},${y}`;

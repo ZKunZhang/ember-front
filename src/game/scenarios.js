@@ -1,5 +1,6 @@
 import { BLUE_FORMATION, UNIT_TYPES } from './catalog.js';
 import { DEFAULT_DIFFICULTY, enemyCountFor, getDifficulty } from './difficulty.js';
+import { hexDistance, hexNeighbors } from './hex.js';
 
 export const FORMATIONS = {
   balanced: { name: '均衡编组', description: '各兵种协同推进，适合初次部署。', types: ['scout','tank','heavyTank','artillery','rocket','engineer','tank','artillery','scout'] },
@@ -239,6 +240,8 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
     for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++)if(terrain[y][x]===0)put(x,y,2);
   for(const point of meta.mission?.points||(meta.mission?.point?[meta.mission.point]:[])) put(point.x,point.y,3);
   const outposts = meta.mission?.kind === 'breakthrough' || meta.mission?.outposts;
+  const flipX=['northwest','northeast'].includes(meta.approach),flipY=['southeast','northeast'].includes(meta.approach);
+  const transform=p=>({...p,x:flipX?cols-1-p.x:p.x,y:flipY?rows-1-p.y:p.y});
   const blue=BLUE.slice(0,meta.allyCount).map(([x,y],i)=>({team:'blue',type:formation.types[i],x,y}));
   let red = (outposts ? CROSSING_PATROLS : meta.id === 'diagonal-valley' ? RED_NORTH : RED_SOUTH).slice(0, enemyCount);
   if(outposts) {
@@ -249,13 +252,14 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
       const {x,y}=queue[i],key=`${x},${y}`;
       if(seen.has(key)||![0,3].includes(terrain[y]?.[x]))continue;
       seen.add(key);
-      queue.push({x:x-1,y},{x:x+1,y},{x,y:y-1},{x,y:y+1});
+      // Search after orientation: reflecting one axial axis changes adjacency.
+      queue.push(...hexNeighbors(transform({x,y})).map(transform));
     }
     const occupied=new Set([...blue,...(meta.mission.points??[meta.mission.point])].map(p=>`${p.x},${p.y}`));
     const candidates=[...seen].map(key=>{const [x,y]=key.split(',').map(Number);return {x,y};});
     red=red.map(([ax,ay])=>{
-      const options=candidates.filter(p=>!occupied.has(`${p.x},${p.y}`)&&blue.every(u=>Math.abs(u.x-p.x)+Math.abs(u.y-p.y)>UNIT_TYPES[u.type].vision+1));
-      const score=p=>10*(Math.abs(p.x-ax)+Math.abs(p.y-ay))+([[p.x-1,p.y],[p.x+1,p.y],[p.x,p.y-1],[p.x,p.y+1]].some(([x,y])=>[1,2].includes(terrain[y]?.[x]))?0:8);
+      const options=candidates.filter(p=>!occupied.has(`${p.x},${p.y}`)&&blue.every(u=>hexDistance(transform(u),transform(p))>UNIT_TYPES[u.type].vision+1));
+      const score=p=>10*hexDistance(transform(p),transform({x:ax,y:ay}))+(hexNeighbors(transform(p)).map(transform).some(({x,y})=>[1,2].includes(terrain[y]?.[x]))?0:8);
       options.sort((a,b)=>score(a)-score(b)||a.x-b.x||a.y-b.y);
       const p=options[0];
       if(!p)throw new Error(`No connected patrol position in ${meta.id}`);
@@ -264,8 +268,6 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
   }
   const deployments = [...blue,...red.map(([x,y],i)=>({team:'red',type:(outposts ? PATROL_TYPES : RED_TYPES)[i],x,y,...(outposts?{patrolGroup:i%3}: {})}))];
   for (const {x,y} of deployments) put(x,y,0);
-  const flipX=['northwest','northeast'].includes(meta.approach),flipY=['southeast','northeast'].includes(meta.approach);
-  const transform=p=>({...p,x:flipX?cols-1-p.x:p.x,y:flipY?rows-1-p.y:p.y});
   const mission=meta.mission?{...meta.mission,...(meta.mission.points?{points:meta.mission.points.map(transform)}:{point:transform(meta.mission.point)})}:undefined;
   const oriented=Array.from({length:rows},(_,y)=>Array.from({length:cols},(_,x)=>terrain[flipY?rows-1-y:y][flipX?cols-1-x:x]));
   return { ...meta, mission, formationId: Object.entries(FORMATIONS).find(([,f])=>f===formation)?.[0] ?? meta.formationId, formationName: formation.name, difficultyId: difficulty.id, difficulty: difficulty.label, enemyCount, cols, rows, terrain:oriented, deployments:deployments.map(unit=>({...transform(unit),heading:{x:(unit.team==='blue'?-1:1)*(flipX?-1:1),y:0}})), landmarks:landmarks.map(transform) };

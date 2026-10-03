@@ -1,3 +1,4 @@
+import { HEX_DIRECTIONS } from '../src/game/hex.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SCENARIOS, FORMATIONS, createScenario } from '../src/game/scenarios.js';
@@ -12,7 +13,7 @@ test('every scenario and difficulty has legal deployments and a connected approa
     const passable=(x,y)=>x>=0&&y>=0&&x<s.cols&&y<s.rows&&[0,3].includes(s.terrain[y][x]);
     const first=s.deployments.find(u=>u.team==='blue');
     const seen=new Set([`${first.x},${first.y}`]), queue=[...seen];
-    for(let i=0;i<queue.length;i++){const [x,y]=queue[i].split(',').map(Number);for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=`${x+dx},${y+dy}`;if(!seen.has(k)&&passable(x+dx,y+dy)){seen.add(k);queue.push(k);}}}
+    for(let i=0;i<queue.length;i++){const [x,y]=queue[i].split(',').map(Number);for(const [dx,dy] of HEX_DIRECTIONS){const k=`${x+dx},${y+dy}`;if(!seen.has(k)&&passable(x+dx,y+dy)){seen.add(k);queue.push(k);}}}
     for (const u of [...s.deployments,...(s.mission?.points||(s.mission?.point?[s.mission.point]:[]))]) assert.ok(seen.has(`${u.x},${u.y}`),`${meta.id} cannot reach ${u.x},${u.y}`);
   }
 });

@@ -1,66 +1,72 @@
 import { mountainMesh } from './landforms.js';
+import { HEX_DIRECTIONS, hexCorners, hexToPlane, planeToHex } from '../game/hex.js';
 
 export function createTerrainRenderer(painter, state) {
   const { ctx, scale, p, polygon, line, tile } = painter;
   const terrainAt = (x, y) => state.terrain[y]?.[x];
-  const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  const directions = HEX_DIRECTIONS;
   const paint = (points, color, stroke, width) => polygon(points.map(point => p(...point)), color, stroke, width);
 
   function bridgeAxis(x, y) {
-    if (terrainAt(x, y - 1) === 4 && terrainAt(x, y + 1) === 4) return 'x';
-    if (terrainAt(x - 1, y) === 4 && terrainAt(x + 1, y) === 4) return 'y';
+    for(let i=0;i<3;i++) {
+      const [dx,dy]=directions[i];
+      if(terrainAt(x+dx,y+dy)===3&&terrainAt(x-dx,y-dy)===3&&
+        directions.some(([a,b],j)=>j%3!==i&&terrainAt(x+a,y+b)===4))return [dx,dy];
+    }
     return null;
   }
+  function bridgePoint(x,y,axis) {
+    const forward=hexToPlane({x:axis[0],y:axis[1]});
+    return (along,across,z=0)=>{
+      const offset=planeToHex({x:forward.x*along-forward.y*across,y:forward.y*along+forward.x*across});
+      return p(x+.5+offset.x,y+.5+offset.y,z);
+    };
+  }
   function road(x, y, hidden) {
-    const connected = directions.filter(([dx, dy]) => terrainAt(x + dx, y + dy) === 3);
-    const axis = bridgeAxis(x, y);
-    if (axis) {
-      const q = (a, b, z = 1.5) => axis === 'x' ? p(x + a, y + b, z) : p(x + b, y + a, z);
-      polygon([q(0, .11), q(1, .11), q(1, .89), q(0, .89)], hidden ? '#6a6952' : '#a99b77');
-      for (let i = 0; i < 7; i++) line(q(i / 6, .12), q(i / 6, .88), hidden ? '#424d3d' : '#786d55', .8);
-      for (const b of [.2, .8]) line(q(0, b, 1.7), q(1, b, 1.7), hidden ? '#888268' : '#d0b891', 1.25);
-      return;
+    const corners=hexCorners(x,y),center=[x+.5,y+.5];
+    const connected=directions.map(([dx,dy],i)=>terrainAt(x+dx,y+dy)===3?i:-1).filter(i=>i>=0);
+    const surface=hidden?'#69725d':'#b6b69a',shoulder=hidden?'#505d48':'#818b68';
+    tile(x,y,shoulder,null,.25,.02);tile(x,y,surface,null,.32,.04);
+    for(const i of connected) {
+      const a=corners[i],b=corners[(i+1)%6];
+      const edge=t=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,.05];
+      for(const [inset,color] of [[.08,shoulder],[.18,surface]]) {
+        const left=edge(inset),right=edge(1-inset);
+        const near=point=>[point[0]-(a[0]+b[0])/2+center[0],point[1]-(a[1]+b[1])/2+center[1],.05];
+        paint([near(left),left,right,near(right)],color);
+      }
+      const middle=edge(.5);
+      line(p(center[0]*.4+middle[0]*.6,center[1]*.4+middle[1]*.6,.1),p(...middle),hidden?'#8d8767':'#d3c49e',.8);
     }
-    const surface = hidden ? '#69725d' : '#b6b69a';
-    const shoulder = hidden ? '#505d48' : '#818b68';
-    tile(x, y, shoulder, null, .15, .02);
-    tile(x, y, surface, null, .22, .04);
-    for (const [dx, dy] of connected) {
-      const across = dx !== 0;
-      const q = (a, b) => across ? p(x + .5 + dx * a, y + b, .04) : p(x + b, y + .5 + dy * a, .04);
-      polygon([q(0, .15), q(.5, .15), q(.5, .85), q(0, .85)], shoulder);
-      polygon([q(0, .22), q(.5, .22), q(.5, .78), q(0, .78)], surface);
-    }
-    for (const [dx, dy] of connected) {
-      const across = dx !== 0;
-      const q = (a, b) => across ? p(x + .5 + dx * a, y + b, .07) : p(x + b, y + .5 + dy * a, .07);
-      for (const offset of [.34, .66]) line(q(.12, offset), q(.5, offset), hidden ? '#78775a' : '#857b59', .7);
-      line(q(.34, .49), q(.41, .5), hidden ? '#8d8767' : '#c1b08a', .65);
+    const axis=bridgeAxis(x,y);
+    if(axis) {
+      const q=bridgePoint(x,y,axis);
+      polygon([q(-.5,-.26,1.5),q(.5,-.26,1.5),q(.5,.26,1.5),q(-.5,.26,1.5)],hidden?'#6a6952':'#a99b77');
+      for(let i=0;i<=6;i++)line(q(i/6-.5,-.26,1.6),q(i/6-.5,.26,1.6),hidden?'#424d3d':'#786d55',.8);
     }
   }
 
   function water(x, y, hidden) {
-    const shift = ((x * 11 + y * 7) % 6) / 100;
-    for (let i = 0; i < 3; i++) {
-      const a = x + .18 + i * .28;
-      line(p(a, y + .16 + shift, .1), p(a + .012, y + .45 + shift, .1), hidden ? '#496561' : '#709a90', .65);
-      line(p(a + .09, y + .56 - shift, .1), p(a + .1, y + .76 - shift, .1), hidden ? '#37534f' : '#4d7d73', .65);
+    for(let i=0;i<3;i++) {
+      const a=x+.25+i*.22;
+      line(p(a,y+.25,.1),p(a+.015,y+.55,.1),hidden?'#496561':'#709a90',.65);
     }
-    // A narrow irregular bank joins each water tile to dry land without closing bridges.
-    for (const [dx, dy] of directions) {
-      const neighbor = terrainAt(x + dx, y + dy);
-      if (neighbor === undefined || neighbor < 0 || neighbor === 4 || (neighbor === 3 && bridgeAxis(x + dx, y + dy))) continue;
-      const q = (along, inset, z = .3) => dx ? p(x + (dx > 0 ? 1 - inset : inset), y + along, z) : p(x + along, y + (dy > 0 ? 1 - inset : inset), z);
-      polygon([q(0, 0), q(1, 0), q(1, .05), q(.7, .095 + shift), q(.32, .07), q(0, .055)], hidden ? '#62664e' : '#a8a07a');
-      line(q(.08, .075), q(.32, .09), hidden ? '#728373' : '#a3b4a0', .65);
-      line(q(.68, .115), q(.91, .07), hidden ? '#728373' : '#a3b4a0', .65);
+    const corners=hexCorners(x,y);
+    for(const [i,[dx,dy]] of directions.entries()) {
+      const neighbor=terrainAt(x+dx,y+dy);
+      if(neighbor===undefined||neighbor<0||neighbor===4||(neighbor===3&&bridgeAxis(x+dx,y+dy)))continue;
+      const a=corners[i],b=corners[(i+1)%6];
+      const inner=point=>[point[0]*.86+(x+.5)*.14,point[1]*.86+(y+.5)*.14,.3];
+      paint([[...a,.3],[...b,.3],inner(b),inner(a)],hidden?'#62664e':'#a8a07a');
     }
   }
 
   function ground(x, y, hidden) {
     const type = terrainAt(x, y), variation = (x * 13 + y * 7) % 4;
     const grass = hidden ? ['#343d3c', '#39413f', '#333c39', '#3d4340'] : ['#817b60', '#898066', '#77765c', '#82785f'];
-    tile(x, y, type === 4 ? (hidden ? '#293f3c' : '#426c76') : grass[variation], hidden ? null : '#273d3012');
+    ctx.save();
+    polygon(hexCorners(x,y).map(([a,b])=>p(a,b)));ctx.clip();
+    tile(x,y,type===4?(hidden?'#293f3c':'#426c76'):grass[variation]);
     if (type === 4) water(x, y, hidden);
     else if (type === 3) road(x, y, hidden);
     else {
@@ -96,6 +102,8 @@ export function createTerrainRenderer(painter, state) {
       }
 
     }
+    ctx.restore();
+    tile(x,y,null,hidden?'#84928512':'#26382f55',0,.15,.75);
   }
 
   function mountain(x, y, hidden) {
@@ -141,22 +149,20 @@ export function createTerrainRenderer(painter, state) {
   }
 
   function bridge(x, y, hidden) {
-    const axis = bridgeAxis(x, y);
-    if (!axis) return;
-    const q = (a, b, z = 0) => axis === 'x' ? p(x + a, y + b, z) : p(x + b, y + a, z);
-    for (const b of [.12, .88]) {
-      line(q(0, b, 4.5), q(1, b, 4.5), hidden ? '#858069' : '#c6b390', 1.6);
-      for (const a of [.06, .5, .94]) line(q(a, b, .4), q(a, b, 5), hidden ? '#565e48' : '#827a5c', 1.4);
+    const axis=bridgeAxis(x,y);
+    if(!axis)return;
+    const q=bridgePoint(x,y,axis);
+    for(const side of [-.27,.27]) {
+      line(q(-.5,side,4.5),q(.5,side,4.5),hidden?'#858069':'#c6b390',1.6);
+      for(const along of [-.46,0,.46])line(q(along,side,.4),q(along,side,5),hidden?'#565e48':'#827a5c',1.4);
     }
   }
   function details(x, y, hidden) {
     const type = terrainAt(x, y);
     if (type === 1) mountain(x, y, hidden);
     if (type === 2) {
-      const left=terrainAt(x,y-1)===2?0:.12,right=terrainAt(x,y+1)===2?1:.88;
-      const back=terrainAt(x-1,y)===2?0:.12,front=terrainAt(x+1,y)===2?1:.88;
-      paint([[x+back,y+left,18],[x+front,y+left,18],[x+front,y+right,18],[x+back,y+right,18]],hidden?'#304436':'#475940');
-      for(const [a,b,i] of [[.2,.2,0],[.18,.72,1],[.64,.12,2],[.66,.62,3]])
+      tile(x,y,hidden?'#304436':'#475940',null,0,18);
+      for(const [a,b,i] of [[.5,.5,0],[.2,.65,1],[.65,.15,2],[.7,.55,3]])
         tree(x+a,y+b,29+(x*3+y+i*7)%8,hidden,x+y+i);
     }
     if (type === 3) bridge(x, y, hidden);

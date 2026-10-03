@@ -22,7 +22,7 @@ export default function Battlefield({ game, onCell, onReset, onUndo, onExit, onN
             ? `${hoveredUnit.team === 'blue' ? '我方' : '敌方'} ${String(hoveredUnit.id).padStart(2, '0')} · ${hoveredUnit.name}`
             : hover
               ? `GRID ${hover.x + 1} : ${hover.y + 1}`
-              : '22 × 18 · 不规则战区'}
+              : '22 × 18 · 六角战区'}
         </span>
       </div>
       <div className="canvas-wrap">
@@ -32,7 +32,7 @@ export default function Battlefield({ game, onCell, onReset, onUndo, onExit, onN
           style={{
             cursor: dragging ? 'grabbing' : hoveredUnit ? 'pointer' : 'grab',
           }}
-          aria-label="桌面俯视沙盘战场，可双指滑动或拖动平移；点击车辆选择，点击高亮地格移动"
+          aria-label="六角格沙盘战场，可双指滑动或拖动平移；点击车辆选择，点击高亮地格移动"
           {...pointerHandlers}
         />
         <FogLayer game={game} view={view} />

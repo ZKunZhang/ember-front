@@ -16,7 +16,7 @@ for (const scenario of SCENARIOS) test(`${scenario.id}: perspective respects the
     assert.ok(view.th/view.tw>.5&&view.th/view.tw<.7);
     const a=project(view,8,7),b=project(view,8,8),c=project(view,9,7);
     assert.equal(b.y,a.y);
-    assert.ok(c.x<a.x);
+    assert.ok(c.x>a.x,'axial rows stagger by half a hex');
     const farWidth=project(view,2,15).x-project(view,2,3).x;
     const nearWidth=project(view,20,15).x-project(view,20,3).x;
     assert.ok(nearWidth>farWidth*1.2);

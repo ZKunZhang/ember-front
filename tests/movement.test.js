@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { initialGame, gameReducer } from '../src/game/reducer.js';
 import { movementDuration, movementPosition } from '../src/game/movement.js';
-import { reachable, passable } from '../src/game/engine.js';
+import { reachable, passable, distance } from '../src/game/engine.js';
 import { createView, project, VEHICLE_SCALE } from '../src/rendering/projection.js';
 import { pickUnit } from '../src/rendering/picking.js';
 
@@ -63,7 +63,7 @@ test('visible enemy movement follows passable cells; hidden routes produce no an
   assert.deepEqual(visible.movement.path[0],position(red));
   for(let i=1;i<visible.movement.path.length;i++){
     const a=visible.movement.path[i-1],b=visible.movement.path[i];
-    assert.equal(Math.abs(a.x-b.x)+Math.abs(a.y-b.y),1);
+    assert.equal(distance(a,b),1);
     assert.ok(passable(visible,b.x,b.y));
   }
   const hidden=structuredClone(source);hidden.fog[red.y][red.x]=true;

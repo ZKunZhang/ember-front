@@ -1,3 +1,5 @@
+import { hexToPlane, planeToHex } from '../game/hex.js';
+
 const PALETTES = {
   blue: { hull: '#657c84', roof: '#a0adb0', slope: '#495e66', side: '#34464e', shade: '#243039', edge: '#d4d6cc', stripe: '#80d6e5', glass: '#15333d' },
   red: { hull: '#a4826b', roof: '#d3b292', slope: '#896951', side: '#674c40', shade: '#42332e', edge: '#f3dfba', stripe: '#ec7964', glass: '#2b3334' },
@@ -10,11 +12,13 @@ export function drawVehicleModel(painter, unit, motion = null) {
   const colors = PALETTES[unit.team] || PALETTES.blue;
   const direction = unit.team === 'blue' ? -1 : 1;
   const heading=motion?.heading||unit.heading||{x:direction,y:0};
+  const forward=hexToPlane(heading),length=Math.hypot(forward.x,forward.y)||1;
+  forward.x/=length;forward.y/=length;
   const q = (a, b, z = 0) => {
     // Running gear stays grounded while the sprung hull heaves and pitches.
     const suspension=motion?.active&&z>6.5?motion.bob+a*motion.pitch+b*motion.roll:0;
-    return p(unit.x+.5+a*heading.x-b*heading.y*direction,
-      unit.y+.5+a*heading.y+b*heading.x*direction,z+suspension);
+    const offset=planeToHex({x:a*forward.x-b*forward.y*direction,y:a*forward.y+b*forward.x*direction});
+    return p(unit.x+.5+offset.x,unit.y+.5+offset.y,z+suspension);
   };
   const plate = (points, fill, stroke, width) => polygon(points.map(point => q(...point)), fill, stroke, width);
   const seam = (a, b, color = colors.shade, width = .65) => line(q(...a), q(...b), color, width);

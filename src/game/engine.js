@@ -2,10 +2,10 @@ import { UNIT_TYPES } from './catalog.js';
 import { createScenario } from './scenarios.js';
 import { DEFAULT_DIFFICULTY, applyEnemyDifficulty, getDifficulty } from './difficulty.js';
 import { canSee, lineOfSight } from './sight.js';
+import { HEX_DIRECTIONS, hexDistance } from './hex.js';
 
-export const distance = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+export const distance = hexDistance;
 export const keyOf = (x, y) => `${x},${y}`;
-const DIRECTIONS = [[1,0],[-1,0],[0,1],[0,-1]];
 export const onMap = (s, x, y) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < s.cols && y < s.rows && s.terrain[y][x] >= 0;
 export const passable = (s, x, y) => onMap(s, x, y) && [0,3].includes(s.terrain[y][x]);
 export const unitAt = (s, x, y) => s.units.find(u => u.hp > 0 && u.x === x && u.y === y);
@@ -31,7 +31,7 @@ export function updateFog(s) {
   for (const u of s.units.filter(u => u.team === 'blue' && u.hp > 0)) {
     for (let dy = -u.vision; dy <= u.vision; dy++) for (let dx = -u.vision; dx <= u.vision; dx++) {
       const x = u.x + dx, y = u.y + dy;
-      if (onMap(s,x,y) && Math.abs(dx) + Math.abs(dy) <= u.vision && lineOfSight(s,u,{x,y})) s.fog[y][x] = false;
+      if (onMap(s,x,y) && distance(u,{x,y}) <= u.vision && lineOfSight(s,u,{x,y})) s.fog[y][x] = false;
     }
   }
 }
@@ -49,7 +49,7 @@ export function reachable(s, u, limit = u?.move ?? 0, knownOnly = u?.team === 'b
   for (let i = 0; i < queue.length; i++) {
     const current = queue[i];
     if (current.path.length >= limit) continue;
-    for (const [dx,dy] of DIRECTIONS) {
+    for (const [dx,dy] of HEX_DIRECTIONS) {
       const x = current.x + dx, y = current.y + dy, key = keyOf(x,y);
       if (seen.has(key) || !passable(s,x,y) || occupied(s,x,y,u,knownOnly)) continue;
       seen.add(key);

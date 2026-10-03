@@ -1,3 +1,4 @@
+import { HEX_DIRECTIONS, hexDistance } from '../src/game/hex.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { UNIT_TYPES } from '../src/game/catalog.js';
@@ -11,7 +12,7 @@ function terrainRoute(s,from,to) {
   const queue=[{...from,path:[]}],seen=new Set([`${from.x},${from.y}`]);
   for(let i=0;i<queue.length;i++) {
     const p=queue[i];if(p.x===to.x&&p.y===to.y)return p.path;
-    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=p.x+dx,y=p.y+dy,k=`${x},${y}`;if(passable(s,x,y)&&!seen.has(k)){seen.add(k);queue.push({x,y,path:[...p.path,{x,y}]});}}
+    for(const [dx,dy] of HEX_DIRECTIONS){const x=p.x+dx,y=p.y+dy,k=`${x},${y}`;if(passable(s,x,y)&&!seen.has(k)){seen.add(k);queue.push({x,y,path:[...p.path,{x,y}]});}}
   }return null;
 }
 
@@ -32,7 +33,7 @@ test('mountain pass and north road are independent, both bridges are useful',()=
   const b=createState('twin-bridges');for(const y of [5,12])for(let x=10;x<=12;x++)b.terrain[y][x]=4;assert.equal(terrainRoute(b,b.units[0],b.mission.points[0]),null);
 });
 test('BFS never crosses mountains, woodland, water, void or known units',()=>{
-  const s=state([unit(1,'blue','scout',3,3),unit(2,'red','tank',2,3)]);s.terrain[3][4]=1;s.terrain[2][3]=4;s.terrain[4][3]=-1;
+  const s=state([unit(1,'blue','scout',3,3),unit(2,'red','tank',2,3)]);s.terrain[3][4]=1;s.terrain[2][3]=4;s.terrain[4][3]=-1;s.terrain[4][2]=2;s.terrain[2][4]=1;
   assert.equal(reachable(s,s.units[0]).size,0);s.terrain[3][4]=2;assert.equal(reachable(s,s.units[0]).size,0);
 });
 test('hidden enemies do not leak through reachable and interrupt real movement',()=>{
@@ -68,10 +69,10 @@ test('enemy artillery can fire from fog without revealing the shooter',()=>{
   const result=enemyAct(s,2);assert.equal(result.hidden,true);assert.equal(result.damage,5);assert.equal(s.fog[3][6],true);assert.equal(enemyAct(s,2).damage,undefined);
 });
 test('AI uses a global detour even when first move increases target distance',()=>{
-  const s=state([unit(1,'red','tank',2,3,{move:1,range:1}),unit(2,'blue','tank',4,3)],blank(8,8));s.turn='red';
+  const s=state([unit(1,'red','tank',2,3,{move:1,range:1}),unit(2,'blue','tank',4,1)],blank(8,8));s.turn='red';
   for(let y=0;y<=5;y++)s.terrain[y][3]=1;
-  const before=Math.abs(s.units[0].x-4)+Math.abs(s.units[0].y-3);
-  enemyAct(s,1);const after=Math.abs(s.units[0].x-4)+Math.abs(s.units[0].y-3);assert.ok(after>before);assert.equal(s.units[0].y,4);
+  const before=hexDistance(s.units[0],{x:4,y:1});
+  enemyAct(s,1);const after=hexDistance(s.units[0],{x:4,y:1});assert.ok(after>before);assert.equal(s.units[0].y,4);
 });
 test('dead targets are ignored, death removes vision, victory prevents further actions',()=>{
   const s=state([unit(1,'blue','tank',1,2,{hp:1}),unit(2,'red','artillery',5,2),unit(3,'blue','tank',4,2,{hp:0})]);s.turn='red';

@@ -1,15 +1,19 @@
-// Trace grid boundaries once per tactical state, including holes and islands.
+import { HEX_DIRECTIONS, hexCorners } from '../game/hex.js';
+
+// Trace shared hex edges once per tactical state, including holes and islands.
 export function rangeContours(cells) {
   const edges=[],from=new Map();
   for(const key of cells.keys()){
     const [x,y]=key.split(',').map(Number);
-    for(const [dx,dy,a,b,dir] of [[0,-1,[x,y],[x+1,y],0],[1,0,[x+1,y],[x+1,y+1],1],[0,1,[x+1,y+1],[x,y+1],2],[-1,0,[x,y+1],[x,y],3]]){
+    const corners=hexCorners(x,y);
+    for(const [dir,[dx,dy]] of HEX_DIRECTIONS.entries()){
       if(cells.has(`${x+dx},${y+dy}`))continue;
+      const a=corners[dir],b=corners[(dir+1)%6];
       const edge={a,b,dir,used:false};edges.push(edge);
       const start=a.join(',');if(!from.has(start))from.set(start,[]);from.get(start).push(edge);
     }
   }
-  const loops=[],priority=[1,0,3,2];
+  const loops=[];
   for(const first of edges){
     if(first.used)continue;
     const loop=[];let edge=first;
@@ -17,7 +21,6 @@ export function rangeContours(cells) {
       edge.used=true;loop.push(edge.a);
       if(edge.b[0]===first.a[0]&&edge.b[1]===first.a[1])break;
       const next=(from.get(edge.b.join(','))||[]).filter(item=>!item.used);
-      next.sort((a,b)=>priority.indexOf((a.dir-edge.dir+4)%4)-priority.indexOf((b.dir-edge.dir+4)%4));
       edge=next[0];
     }
     if(loop.length>=3)loops.push(loop);

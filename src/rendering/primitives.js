@@ -1,4 +1,5 @@
 import { project } from './projection.js';
+import { hexCorners } from '../game/hex.js';
 
 export function createPainter(ctx, view) {
   const scale = view.scale;
@@ -15,8 +16,7 @@ export function createPainter(ctx, view) {
     ctx.strokeStyle = color;ctx.lineWidth = width * scale;ctx.stroke();
   }
   function tile(x, y, fill, stroke, inset = 0, z = 0, width = .7) {
-    polygon([[x + inset, y + inset], [x + 1 - inset, y + inset],
-      [x + 1 - inset, y + 1 - inset], [x + inset, y + 1 - inset]].map(([a, b]) => p(a, b, z)), fill, stroke, width);
+    polygon(hexCorners(x,y,inset).map(([a, b]) => p(a, b, z)), fill, stroke, width);
   }
   return { ctx, view, scale, p, polygon, line, tile };
 }

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { UNIT_TYPES } from '../src/game/catalog.js';
-import { createState, enemyAct, updateFog } from '../src/game/engine.js';
+import { createState, enemyAct, updateFog, distance } from '../src/game/engine.js';
 
 const unit=(id,team,type,x,y,extra={})=>({...UNIT_TYPES[type],id,team,type,x,y,hp:UNIT_TYPES[type].maxHp,moved:false,fired:false,...extra});
 const blank=(w=12,h=8)=>Array.from({length:h},()=>Array(w).fill(0));
@@ -29,7 +29,7 @@ test('hard AI repairs an urgent ally and retreats a damaged unit from fire',()=>
   enemyAct(repair,1);assert.deepEqual({x:repair.units[0].x,y:repair.units[0].y},repairPosition);
   const retreat=state([unit(1,'red','scout',5,3,{hp:2,move:4}),unit(2,'blue','tank',6,3)],'hard');
   enemyAct(retreat,1);
-  assert.ok(Math.abs(retreat.units[0].x-6)+Math.abs(retreat.units[0].y-3)>1);
+  assert.ok(distance(retreat.units[0],{x:6,y:3})>1);
 });
 
 test('hard AI concentrates available fire on the same weakened target',()=>{

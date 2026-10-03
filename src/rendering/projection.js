@@ -1,4 +1,6 @@
-// View the tabletop from its near edge: distant rows narrow toward the horizon.
+import { hexCorners, hexNeighbors, roundHex } from '../game/hex.js';
+
+// View the hex tabletop from its near edge; axial rows stagger by half a cell.
 export const DEFAULT_ZOOM = 1.15;
 export const VEHICLE_SCALE = .72;
 const TILE_WIDTH = 46;
@@ -10,7 +12,7 @@ export function createView(state,width,height,zoom=DEFAULT_ZOOM,pan={x:0,y:0}) {
   let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
   for (let y=0;y<state.rows;y++) for(let x=0;x<state.cols;x++) {
     if (state.terrain[y][x]<0) continue;
-    for(const [cx,cy] of [[x,y],[x+1,y],[x+1,y+1],[x,y+1]]) {
+    for(const [cx,cy] of hexCorners(x,y)) {
       const point=project(base,cx,cy);
       minX=Math.min(minX,point.x);maxX=Math.max(maxX,point.x);
       minY=Math.min(minY,point.y-44);maxY=Math.max(maxY,point.y+26);
@@ -21,7 +23,7 @@ export function createView(state,width,height,zoom=DEFAULT_ZOOM,pan={x:0,y:0}) {
     ox:width/2-(minX+maxX)*scale/2+pan.x,oy:height/2-(minY+maxY)*scale/2+pan.y};
 }
 export function project(view,x,y,z=0) {
-  const across=(y-view.rows/2)*view.tw*depthScale(view,x);
+  const across=(y-view.rows/2+(x-view.cols/2)/2)*view.tw*depthScale(view,x);
   const depth=(x-view.cols/2)*view.th;
   return {x:view.ox+across,y:view.oy+depth-z*view.scale};
 }
@@ -29,5 +31,20 @@ export function unproject(view,px,py) {
   const dx=px-view.ox,dy=py-view.oy;
   const across=dx,depth=dy;
   const x=depth/view.th+view.cols/2;
-  return {x:Math.floor(x),y:Math.floor(across/(view.tw*depthScale(view,x))+view.rows/2)};
+  const y=across/(view.tw*depthScale(view,x))+view.rows/2-(x-view.cols/2)/2;
+  const nearest=roundHex(x-.5,y-.5);
+  // Perspective bends axial lines slightly; match the straight polygon edges
+  // actually painted on the canvas, including clicks very close to a corner.
+  for(const cell of [nearest,...hexNeighbors(nearest)]) {
+    const corners=hexCorners(cell.x,cell.y).map(([a,b])=>project(view,a,b));
+    let positive=false,negative=false;
+    for(let i=0;i<6;i++) {
+      const a=corners[i],b=corners[(i+1)%6];
+      const cross=(b.x-a.x)*(py-a.y)-(b.y-a.y)*(px-a.x);
+      if(cross>1e-8)positive=true;
+      if(cross< -1e-8)negative=true;
+    }
+    if(!(positive&&negative))return cell;
+  }
+  return nearest;
 }

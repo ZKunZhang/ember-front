@@ -3,9 +3,11 @@ import { test, expect } from '@playwright/test';
 async function moveScout(page) {
   const point=await page.evaluate(async()=>{
     const {createState}=await import('/src/game/engine.js');
+    const {sourceToHex}=await import('/src/game/layout.js');
     const {createView,project}=await import('/src/rendering/projection.js');
     const r=document.querySelector('#map').getBoundingClientRect();
-    const p=project(createView(createState(),r.width,r.height),16.5,3.5);
+    const state=createState(),target=sourceToHex(state,{x:16,y:3});
+    const p=project(createView(state,r.width,r.height),target.x+.5,target.y+.5);
     return {x:r.left+p.x,y:r.top+p.y};
   });
   await page.mouse.click(point.x,point.y);

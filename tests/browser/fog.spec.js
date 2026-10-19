@@ -45,6 +45,10 @@ test('fog mask follows panning, leaves visible units clear and invalidates on vi
     return {samples,allocationCount,hasFog,empty,released:canvases.every(c=>c.width===0&&c.height===0)};
   });
   expect(result.allocationCount).toBe(2);
-  for(const sample of result.samples){expect(sample.blue).toBeLessThan(10);expect(sample.red).toBeGreaterThan(100);}
+  for(const sample of result.samples){
+    expect(sample.blue).toBeLessThan(10);
+    expect(sample.red).toBeGreaterThan(30);
+    expect(sample.red).toBeLessThan(100);
+  }
   expect(result.hasFog).toBe(false);expect(result.empty).toBe(true);expect(result.released).toBe(true);
 });

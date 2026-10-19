@@ -350,3 +350,46 @@
   .unit-action-buttons button > small { font-size: 8px; }
   .battle-screen .map-command-hint { bottom: calc(103px + env(safe-area-inset-bottom)); max-width: calc(100vw - 32px); font-size: 9px; }
 }
+
+/* Camera tools stay on the edge of the tabletop. */
+.sandtable-controls { position: absolute; z-index: 3; top: 80px; left: 20px; width: 184px; color: #c5c4af; font-size: 10px; }
+.sandtable-controls summary { display: flex; align-items: center; gap: 7px; width: max-content; padding: 7px 10px; border: 1px solid #b7ad8055; border-radius: 16px; background: #222820db; cursor: pointer; list-style: none; }
+.sandtable-controls summary::-webkit-details-marker { display: none; }
+.sandtable-controls summary > span:first-child { font-size: 18px; line-height: 1; }
+.sandtable-controls[open] { padding: 8px; border: 1px solid #b7ad8040; border-radius: 8px; background: #1d251fe8; box-shadow: 0 8px 24px #0004; }
+.sandtable-controls[open] summary { padding: 0 0 9px; border: 0; background: none; }
+.sandtable-buttons { display: flex; gap: 4px; }
+.game-shell .sandtable-buttons button { width: 29px; height: 30px; padding: 0; min-height: 0; font-size: 18px; color: #e0d8b7; border: 1px solid #c7bc8f44; border-radius: 4px; background: #c6c39a0d; }
+.sandtable-controls label { display: flex; align-items: center; gap: 8px; margin-top: 12px; white-space: nowrap; }
+.sandtable-controls input { width: 105px; accent-color: #cbb785; }
+.sandtable-controls p { margin: 9px 0 0; font-size: 9px; line-height: 1.8; color: #9eaa98; }
+@media (max-width: 760px) {
+  .sandtable-controls { top: calc(70px + env(safe-area-inset-top)); left: 12px; }
+  .sandtable-controls:not([open]) { width: auto; }
+  .sandtable-controls:not([open]) summary { width: 34px; height: 34px; padding: 0; justify-content: center; }
+  .sandtable-controls:not([open]) summary > span:last-child { display: none; }
+}
+.terrain-status { display: block; margin-top: 5px; color: #b9b59a; font-size: 10px; }
+.unit-terrain { margin: 10px 0 0; color: #b0b59e; font-size: 9px; line-height: 1.6; }
+
+/* A light instrument strip leaves the actual tabletop visible. */
+.mission-overview { width: 330px; gap: 3px; padding: 0; background: none; max-height: 195px; overflow: visible; }
+.battle-screen .mission-overview .mission-head h1 { font-size: 20px; margin: 1px 0 0; }
+.battle-screen .mission-overview .mission-head h1 span { margin-top: 3px; font-size: 8px; }
+.mission-overview .mission-head .eyebrow { font-size: 7px; }
+.mission-overview .objective-text { margin: 2px 0; font-size: 10px; }
+.mission-overview .objective-progress { margin: 2px 0; font-size: 9px; }
+.mission-overview .crossing-readiness { display: none; }
+.battle-screen .mission-overview .battle-status strong { font-size: 18px; }
+.battle-screen .mission-overview .battle-status small { font-size: 8px; }
+.battle-screen .mission-overview .battle-status > .phase-readiness { margin-top: 0; }
+.mission-overview .turn-phase { font-size: 9px; }
+.mission-overview .mission-intel[open] { max-height: min(50vh,400px); overflow-y: auto; background: #17221edb; }
+@media (max-width: 760px) {
+  .mission-overview { width: calc(100% - 108px); max-height: 180px; }
+  .battle-screen .mission-overview .mission-head h1 { font-size: 16px; }
+  .battle-screen .mission-overview .battle-status strong { font-size: 14px; }
+  .mission-overview .objective-text { font-size: 9px; }
+  .mission-overview .objective-progress { font-size: 8px; }
+  .command-hud { top: calc(205px + env(safe-area-inset-top)); }
+}

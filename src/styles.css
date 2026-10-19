@@ -553,3 +553,7 @@ header { background: linear-gradient(#232e27, #19211c); box-shadow: 0 3px 18px #
 @media (max-width: 540px) {
   .campaign-screen { padding: 18px 12px; }.campaign-topbar { gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }.campaign-overline { font-size: 7px; margin-left: 13px; letter-spacing: 1px; }.campaign-topbar h1 { font-size: 22px; letter-spacing: 2px; }.campaign-topbar h1 > span { margin-left: 10px; font-size: 8px; letter-spacing: 0; }.campaign-tools .scenario-filters { width: auto; flex: 1; }.campaign-tools .scenario-search { width: 100%; }.campaign-brief { display: block; }.campaign-settings { border-right: 0; border-bottom: 1px solid #445b49; }.campaign-map-footer { font-size: 8px; gap: 8px; }.campaign-layout { gap: 14px; }
 }
+/* Seven spaced rows leave room for the expanded terrain operations. */
+.campaign-map { aspect-ratio: 10 / 9; }
+.campaign-tools .scenario-filters { flex-wrap: wrap; }
+.campaign-screen .campaign-map { min-height: 760px; }

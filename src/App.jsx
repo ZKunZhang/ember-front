@@ -8,6 +8,7 @@ import UnitActions from './components/UnitActions.jsx';
 import CommandPanel from './components/CommandPanel.jsx';
 import FieldManual from './components/FieldManual.jsx';
 import StoryBrief from './components/StoryBrief.jsx';
+import DefenseOverview from './components/DefenseOverview.jsx';
 import BattleSettings from './components/BattleSettings.jsx';
 import TitleScreen from './components/TitleScreen.jsx';
 import BattleFeedback from './components/BattleFeedback.jsx';
@@ -23,6 +24,14 @@ export default function App() {
   const [progress,setProgress]=useState(readProgress);
   const active=screen==='battle'&&!settings&&!help;
   const {game,dispatch}=useGame(active,route);
+  const [defenseGuideOpen,setDefenseGuideOpen]=useState(()=>route?.scenarioId==='airfield-defense');
+  const [focusTarget,setFocusTarget]=useState(null);
+  const lastAction=game.undoHistory?.at(-1);
+  useEffect(()=>{
+    if(game.mission?.kind==='defend'&&game.notice?.cue==='deploy')setDefenseGuideOpen(true);
+    setFocusTarget(null);
+  },[game.session]);
+  useEffect(()=>{if(lastAction)setDefenseGuideOpen(false);},[lastAction]);
   const audio=useBattleAudio(game,active,screen);
   useEffect(()=>{
     if(game.winner==='blue')setProgress(current=>recordVictory(current,game));
@@ -79,10 +88,12 @@ export default function App() {
   const living=allies.filter(u=>u.hp>0);
   const escort=allies.find(u=>u.type==='engineer');
   const nextScenario=SCENARIOS[SCENARIOS.findIndex(s=>s.id===game.id)+1];
+  const defending=game.mission?.kind==='defend';
+  const locate=point=>setFocusTarget({point});
   return <div className={screen==='battle'?'game-shell':'library-shell'}>
     <header><div className="header-actions"><button className="icon-button" id="battle-settings" onClick={()=>setSettings(true)} aria-label="战斗设置" title="战斗设置（Esc）">⚙</button><button className="icon-button sound-toggle" data-quiet aria-label={audio.settings.muted?'开启音效':'静音'} aria-pressed={audio.settings.muted} title="音效开关（M）" onClick={()=>audio.update({muted:!audio.settings.muted})}>{audio.settings.muted?'♪̸':'♪'}</button></div></header>
-    {screen==='library'?<ScenarioSelect onHome={()=>navigate(null,'home')} onDeploy={deploy} hasBattle={hasBattle} onResume={resume} progress={progress}/>:<main className="battle-screen">
-      <section className="mission-overview" aria-label="任务与进度">
+    {screen==='library'?<ScenarioSelect onHome={()=>navigate(null,'home')} onDeploy={deploy} hasBattle={hasBattle} onResume={resume} progress={progress}/>:<main className={`battle-screen${defending?' defense-battle':''}`}>
+      {defending?<DefenseOverview game={game} guideOpen={defenseGuideOpen} onGuideChange={setDefenseGuideOpen} onLocateRunway={()=>locate(game.mission.point||game.mission.points[0])}/>:<section className="mission-overview" aria-label="任务与进度">
       <section className="mission-head">
         <div><div className="eyebrow">{game.subtitle} <span>/</span> {game.direction}</div><h1>{game.name}<span>{game.difficulty} · {game.formationName}</span></h1></div>
       </section>
@@ -96,7 +107,7 @@ export default function App() {
       <section className="objective-hud" aria-label="作战目标">
         <p className="objective-text"><span>任务</span>{game.objective}</p>
         {game.mission?.kind==='breakthrough'&&<div className="crossing-readiness" aria-label="穿越任务状态"><span>{game.direction}</span><span>出发 {allies.length} 辆 · 至少保住 {game.mission.required} 辆</span><div className="exit-slots" aria-label={`撤离进度 ${breakthroughArrivals(game).length} / ${game.mission.required}`}>{Array.from({length:game.mission.required},(_,i)=><i key={i} className={i<breakthroughArrivals(game).length?'arrived':''}/>)}</div></div>}
-        {game.mission&&<p className="objective-progress" aria-live="polite">{game.winner==='blue'?'任务已完成':game.winner==='red'?'任务失败':game.mission.kind==='breakthrough'?`抵达撤离区 ${breakthroughArrivals(game).length} / ${game.mission.required} 辆 · 无需全歼敌军`:game.mission.kind==='hold'?`坚守进度 ${game.missionProgress?.heldTurns||0} / ${game.mission.turns} 回合`:game.mission.kind==='capture'?`占领进度 ${game.missionProgress?.captured?.filter(Boolean).length||0} / ${game.mission.points.length}`:`护送目标：工程车 ${String(escort?.id).padStart(2,'0')} · 生命 ${escort?.hp ?? 0} / ${escort?.maxHp ?? 0} · 抵达金色目标格`}</p>}
+        {game.mission&&<p className="objective-progress" aria-live="polite">{game.winner==='blue'?'任务已完成':game.winner==='red'?'任务失败':game.mission.kind==='breakthrough'?`抵达撤离区 ${breakthroughArrivals(game).length} / ${game.mission.required} 辆 · 无需全歼敌军`:game.mission.kind==='defend'?`机场守备 ${game.missionProgress?.defendedTurns||0} / ${game.mission.turns} 回合 · 阻止敌军进入跑道`:game.mission.kind==='hold'?`坚守进度 ${game.missionProgress?.heldTurns||0} / ${game.mission.turns} 回合`:game.mission.kind==='capture'?`占领进度 ${game.missionProgress?.captured?.filter(Boolean).length||0} / ${game.mission.points.length}`:`护送目标：工程车 ${String(escort?.id).padStart(2,'0')} · 生命 ${escort?.hp ?? 0} / ${escort?.maxHp ?? 0} · 抵达金色目标格`}</p>}
         <details className="mission-intel">
           <summary>任务简报与战术路线</summary>
           <p>{game.briefing}</p>
@@ -104,10 +115,10 @@ export default function App() {
           <div className="route-brief">{game.routes.map(r=><p key={r}>{r}</p>)}</div>
         </details>
       </section>
-      </section>
-      <Battlefield game={game} onCell={(x,y)=>dispatch({type:'CELL',x,y})} onReset={()=>dispatch({type:'RESET'})} onUndo={()=>dispatch({type:'UNDO'})} onExit={()=>{setHasBattle(false);navigate(null,'home');}} nextScenario={nextScenario} onNext={()=>nextScenario&&deploy(nextScenario.id,game.difficultyId,nextScenario.formationId)}/>
+      </section>}
+      <Battlefield game={game} focusTarget={focusTarget} onCell={(x,y)=>dispatch({type:'CELL',x,y})} onReset={()=>dispatch({type:'RESET'})} onUndo={()=>dispatch({type:'UNDO'})} onExit={()=>{setHasBattle(false);navigate(null,'home');}} nextScenario={nextScenario} onNext={()=>nextScenario&&deploy(nextScenario.id,game.difficultyId,nextScenario.formationId)}/>
       <BattleFeedback game={game} active={active}/>
-      <CommandPanel game={game}/>
+      <CommandPanel game={game} onSelect={id=>dispatch({type:'SELECT',id})} onLocate={locate}/>
       <UnitActions game={game} dispatch={dispatch}/>
       <button className="round-command end-turn-button" id="end-turn" disabled={locked} onClick={()=>dispatch({type:'END_TURN'})} aria-label="结束回合"><span aria-hidden="true">→</span><small>{game.winner?'已结束':locked?'敌方行动':'结束回合'}</small></button>
     </main>}

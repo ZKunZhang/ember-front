@@ -15,3 +15,14 @@ export async function selectMapUnit(page, id, position) {
   }, { id, position });
   await page.mouse.click(point.x, point.y);
 }
+
+// Convert only positions authored in the scenario's rectangular source grid.
+export async function sourcePosition(page, position) {
+  return page.evaluate(async position => {
+    const { createState } = await import('/src/game/engine.js');
+    const { readRoute } = await import('/src/game/routes.js');
+    const { sourceToHex } = await import('/src/game/layout.js');
+    const route = readRoute(new URL(location.href));
+    return sourceToHex(createState(route.scenarioId, route.difficulty, route.formationId), position);
+  }, position);
+}

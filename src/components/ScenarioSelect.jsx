@@ -4,9 +4,10 @@ import { DEFAULT_DIFFICULTY, DIFFICULTIES, enemyCountFor } from '../game/difficu
 import ScenarioPreview from './ScenarioPreview.jsx';
 import { progressKey } from '../game/progress.js';
 
-const POSITIONS = [[15,23],[38,8],[61,23],[15,53],[38,38],[84,38],[15,68],[61,53],[84,68],[61,8],[84,8],[38,68],[15,8],[38,53],[84,53],[15,38],[84,23],[61,38],[61,68],[15,83],[38,83],[61,83],[84,83]];
-const FILTERS = [['all','全部战区'],['standard','常规作战'],['story','战史行动'],['crossing','穿越与护送']];
+const POSITIONS = SCENARIOS.map((_,index)=>[14+index%4*24,8+Math.floor(index/4)*13]);
+const FILTERS = [['all','全部战区'],['standard','常规作战'],['story','战史行动'],['crossing','穿越与护送'],['terrain','地形与守备']];
 const isCrossing=s=>!s.story?.sourceUrl&&(s.mission?.kind==='breakthrough'||s.mission?.outposts);
+const isTerrain=s=>['bog-rescue','ford-crossing','last-bridge','airfield-defense'].includes(s.id);
 
 function CampaignTerrain() {
   return <svg className="campaign-terrain" viewBox="0 0 1000 700" preserveAspectRatio="none" aria-hidden="true">
@@ -45,7 +46,7 @@ export default function ScenarioSelect({ onDeploy, onResume, hasBattle, onHome, 
   const [filter,setFilter]=useState('all');
   const [search,setSearch]=useState('');
   const [inspected,setInspected]=useState(SCENARIOS[0].id);
-  const scenarios=SCENARIOS.filter(s=>(filter==='all'||(filter==='standard'?!s.story&&!isCrossing(s):filter==='crossing'?isCrossing(s):Boolean(s.story?.sourceUrl)))&&`${s.name} ${s.subtitle} ${s.briefing}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const scenarios=SCENARIOS.filter(s=>(filter==='all'||(filter==='standard'?!s.story&&!isCrossing(s):filter==='crossing'?isCrossing(s):filter==='terrain'?isTerrain(s):Boolean(s.story?.sourceUrl)))&&`${s.name} ${s.subtitle} ${s.briefing}`.toLowerCase().includes(search.trim().toLowerCase()));
   const current=scenarios.find(s=>s.id===inspected)||scenarios[0];
   const completed=SCENARIOS.filter(s=>progress[progressKey(s.id,difficulty)]).length;
   const record=current&&progress[progressKey(current.id,difficulty)];
@@ -69,7 +70,7 @@ export default function ScenarioSelect({ onDeploy, onResume, hasBattle, onHome, 
               const index=SCENARIOS.findIndex(item=>item.id===s.id),[x,y]=POSITIONS[index];
               const cleared=Boolean(progress[progressKey(s.id,difficulty)]);
               return <button key={s.id} className={`campaign-node ${s.story?'story-node':''} ${current?.id===s.id?'is-inspected':''} ${cleared?'is-completed':''}`} style={{left:`${x}%`,top:`${y}%`}} data-testid={`deploy-${s.id}`} aria-label={`进入${s.name}${cleared?'，已通关':''}`} onMouseEnter={()=>setInspected(s.id)} onFocus={()=>setInspected(s.id)} onClick={()=>onDeploy(s.id,difficulty,formationFor(s))}>
-                <span className="node-marker">{String(index+1).padStart(2,'0')}{cleared&&<i aria-hidden="true">✓</i>}</span><span className="node-label">{s.name}<small>{s.mission?.kind==='breakthrough'?`${s.allyCount}车穿越 · 保住${s.mission.required}辆`:s.mission?.outposts?'护送行动':s.story?'战史行动':'常规作战'}{cleared?' · ✓':''}</small></span>
+                <span className="node-marker">{String(index+1).padStart(2,'0')}{cleared&&<i aria-hidden="true">✓</i>}</span><span className="node-label">{s.name}<small>{s.mission?.kind==='defend'?'机场守备':isTerrain(s)?'地形作战':s.mission?.kind==='breakthrough'?`${s.allyCount}车穿越 · 保住${s.mission.required}辆`:s.mission?.outposts?'护送行动':s.story?.sourceUrl?'战史行动':s.story?'剧情行动':'常规作战'}{cleared?' · ✓':''}</small></span>
               </button>;
             })}
           </div>

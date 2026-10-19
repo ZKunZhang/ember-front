@@ -1,20 +1,22 @@
+import { sourceToHex } from '../src/game/layout.js';
 import { HEX_DIRECTIONS } from '../src/game/hex.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SCENARIOS, FORMATIONS, createScenario } from '../src/game/scenarios.js';
+import { terrainCost } from '../src/game/terrain.js';
 import { DIFFICULTIES } from '../src/game/difficulty.js';
 
-test('every scenario and difficulty has legal deployments and a connected approach',()=>{
-  for (const meta of SCENARIOS) for (const difficulty of Object.keys(DIFFICULTIES)) {
-    const s=createScenario(meta.id,difficulty), occupied=new Set(s.deployments.map(u=>`${u.x},${u.y}`));
+test('every scenario, difficulty and formation has legal deployments and connected mission targets',()=>{
+  for (const meta of SCENARIOS) for (const difficulty of Object.keys(DIFFICULTIES)) for (const formation of Object.keys(FORMATIONS)) {
+    const s=createScenario(meta.id,difficulty,formation), occupied=new Set(s.deployments.map(u=>`${u.x},${u.y}`));
     assert.equal(s.deployments.length,s.allyCount+s.enemyCount);
     assert.equal(occupied.size,s.deployments.length);
     for (const u of s.deployments) assert.ok(s.terrain[u.y][u.x]>=0);
-    const passable=(x,y)=>x>=0&&y>=0&&x<s.cols&&y<s.rows&&[0,3].includes(s.terrain[y][x]);
+    const passable=(x,y)=>x>=0&&y>=0&&x<s.cols&&y<s.rows&&Number.isFinite(terrainCost(s.terrain[y][x]));
     const first=s.deployments.find(u=>u.team==='blue');
     const seen=new Set([`${first.x},${first.y}`]), queue=[...seen];
     for(let i=0;i<queue.length;i++){const [x,y]=queue[i].split(',').map(Number);for(const [dx,dy] of HEX_DIRECTIONS){const k=`${x+dx},${y+dy}`;if(!seen.has(k)&&passable(x+dx,y+dy)){seen.add(k);queue.push(k);}}}
-    for (const u of [...s.deployments,...(s.mission?.points||(s.mission?.point?[s.mission.point]:[]))]) assert.ok(seen.has(`${u.x},${u.y}`),`${meta.id} cannot reach ${u.x},${u.y}`);
+    for (const u of [...s.deployments,...(s.mission?.points??[]),...(s.mission?.point?[s.mission.point]:[])]) assert.ok(seen.has(`${u.x},${u.y}`),`${meta.id}/${difficulty}/${formation} cannot reach ${u.x},${u.y}`);
   }
 });
 
@@ -40,7 +42,7 @@ test('historical adaptation scenarios expose story and mission contracts',()=>{
     assert.equal(typeof meta.story.history,'string'); assert.ok(meta.story.sourceUrl.startsWith('https://'));
     for (const key of ['intro','success','failure']) assert.ok(meta.story[key].length>10);
     assert.equal(meta.mission.kind,kind); assert.equal(meta.enemyCount,count);
-    const target=kind==='capture'?meta.mission.points:[meta.mission.point];
+    const target=(kind==='capture'?meta.mission.points:[meta.mission.point]).map(p=>sourceToHex(s,p));
     for (const point of target) assert.ok([0,3].includes(s.terrain[point.y][point.x]),`${id} mission point is impassable`);
   }
 });

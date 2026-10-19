@@ -1,4 +1,5 @@
 import { createState, unitAt, moveUnit, attackUnit, repairUnit, enemyAct, beginPlayerTurn, onMap, breakthroughArrivals } from './engine.js';
+import { defenseSummary } from './defense.js';
 
 function addLog(s,message,kind='info') {
   s.logSequence++;
@@ -38,8 +39,13 @@ function finishPlayerTurn(s) {
 export function initialGame(id,session=1,difficulty='simple',formationId) {
   const s={...createState(id,difficulty,formationId),session,mode:'move',inspectedId:null,logs:[],logSequence:0,effectSequence:0,effect:null,movementSequence:0,movement:null,enemyIndex:0,enemyQueue:[],undoHistory:[],noticeSequence:0,notice:null};
   addLog(s,`${s.name}：${s.units.filter(u=>u.team==='blue').length} 辆车完成部署。`,'good');
-  addLog(s,'侦察车开路，工程车随队，火炮利用共享视野。');
-  notify(s,`${s.name} · 部队已就位，点击蓝格开始推进`,'good','deploy');
+  if (s.mission?.kind==='defend') {
+    addLog(s,`守住 ${s.mission.points.length} 格跑道保护区，坚持 ${s.mission.turns} 个完整敌方回合；先布防，任何敌车进入保护区都会失败。`);
+    notify(s,`${s.name} · 先布防，守住 ${s.mission.points.length} 格跑道，坚守 ${s.mission.turns} 个完整敌方回合`,'good','deploy');
+  } else {
+    addLog(s,'侦察车开路，工程车随队，火炮利用共享视野。');
+    notify(s,`${s.name} · 部队已就位，点击蓝格开始推进`,'good','deploy');
+  }
   return s;
 }
 export function gameReducer(current,action) {
@@ -131,8 +137,11 @@ export function gameReducer(current,action) {
       s.enemyIndex++;
     }
     if (s.enemyIndex>=s.enemyQueue.length&&!s.winner) {
-      beginPlayerTurn(s);addLog(s,`第 ${s.turnNumber} 回合，所有车辆行动已恢复。`,'good');
-      notify(s,`第 ${s.turnNumber} 回合 · 我方行动机会已恢复`,'good','turn');
+      beginPlayerTurn(s);
+      if (!(s.mission?.kind==='defend'&&s.winner)) {
+        addLog(s,`第 ${s.turnNumber} 回合，所有车辆行动已恢复。`,'good');
+        notify(s,`第 ${s.turnNumber} 回合 · 我方行动机会已恢复`,'good','turn');
+      }
     }
   } else return current;
   if(!s.winner&&s.mission) {
@@ -143,6 +152,21 @@ export function gameReducer(current,action) {
       notify(s,`车辆抵达撤离区 · ${breakthroughArrivals(s).length} / ${s.mission.required} 辆就位`,'good','objective');
     if(s.mission.kind==='hold'&&s.missionProgress.heldTurns>current.missionProgress.heldTurns)
       notify(s,`坚守成功 ${s.missionProgress.heldTurns} / ${s.mission.turns} 回合 · 我方行动已恢复`,'good','objective');
+  }
+  const defense=defenseSummary(s);
+  if (defense) {
+    if (s.winner&&!current.winner) {
+      const message={
+        held:`机场守备成功 · 已守住 ${defense.required} 个完整敌方回合`,
+        eliminated:`机场守备成功 · 已提前全歼敌军（守备 ${defense.completed} / ${defense.required} 回合）`,
+        overrun:'机场守备失败 · 敌军已进入跑道保护区，防线被突破',
+        lost:'机场守备失败 · 我方车辆已全部损失',
+      }[defense.outcome];
+      addLog(s,message,s.winner==='blue'?'good':'warn');
+      notify(s,message,s.winner==='blue'?'good':'warn','objective');
+    } else if (!s.winner&&defense.completed>(current.missionProgress?.defendedTurns??0)) {
+      notify(s,`机场守备 ${defense.completed} / ${defense.required} 回合 · 还需守备 ${defense.remaining} 个敌方回合`,'good','objective');
+    }
   }
   if (!s.units.some(u=>u.id===s.inspectedId&&u.hp>0&&u.team==='red'&&!s.fog[u.y][u.x])) s.inspectedId=null;
   if (record) s.undoHistory=[...history,snapshot].slice(-50);

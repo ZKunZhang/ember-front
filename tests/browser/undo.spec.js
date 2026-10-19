@@ -6,9 +6,11 @@ test('undo restores movement and an enemy round, and redeployment clears history
   await expect(undo).toBeDisabled();
   const point=await page.evaluate(async()=>{
     const {createState}=await import('/src/game/engine.js');
+    const {sourceToHex}=await import('/src/game/layout.js');
     const {createView,project}=await import('/src/rendering/projection.js');
     const r=document.querySelector('#map').getBoundingClientRect();
-    const p=project(createView(createState(),r.width,r.height),16.5,3.5);
+    const state=createState(),target=sourceToHex(state,{x:16,y:3});
+    const p=project(createView(state,r.width,r.height),target.x+.5,target.y+.5);
     return{x:p.x,y:p.y};
   });
   // Canvas-local coordinates remain valid when toolbar clicks scroll the page.

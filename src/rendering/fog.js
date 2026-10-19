@@ -27,7 +27,7 @@ export function createFogRenderer(makeCanvas = () => document.createElement('can
   }
   return {
     prepare(state,view) {
-      const next=`${view.scale}:${state.cols}:${state.rows}:${JSON.stringify(state.terrain)}:${JSON.stringify(state.fog)}`;
+      const next=`${view.scale}:${view.rotation??0}:${view.tilt??1}:${view.facing??1}:${view.lateral??1}:${view.advance}:${state.cols}:${state.rows}:${JSON.stringify(state.terrain)}:${JSON.stringify(state.fog)}`;
       if(next===key)return Boolean(mask);
       release(mask?.canvas);mask=null;key=next;
       const origin={...view,ox:0,oy:0},cells=[];
@@ -57,8 +57,8 @@ export function createFogRenderer(makeCanvas = () => document.createElement('can
       clouds();
       if(!pattern||patternContext!==ctx){pattern=ctx.createPattern(texture,'repeat');patternContext=ctx;}
       ctx.save();
-      ctx.fillStyle='#172630a6';ctx.fillRect(0,0,view.width,view.height);
-      for(const [scale,speed,alpha] of [[1.65,.006,.7],[2.7,-.003,.35]]) {
+      ctx.fillStyle='#27352f38';ctx.fillRect(0,0,view.width,view.height);
+      for(const [scale,speed,alpha] of [[1.65,.006,.2],[2.7,-.003,.1]]) {
         ctx.save();ctx.globalAlpha=alpha;
         const dx=view.ox+now*speed,dy=view.oy+now*speed*.35;
         ctx.translate(dx,dy);ctx.scale(scale,scale);ctx.fillStyle=pattern;

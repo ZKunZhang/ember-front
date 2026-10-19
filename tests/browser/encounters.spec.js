@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { selectMapUnit } from './unit-selection.js';
 
-test('revised operations deploy different force sizes and corners with an extraction goal',async({page})=>{
+test('operations deploy different force sizes from the lower left with an extraction goal',async({page})=>{
   for(const [id,total,required,direction] of [
-    ['mountain-pass',9,5,'左下'],['diagonal-valley',7,4,'左上'],
-    ['twin-bridges',9,6,'右下'],['forest-corridor',6,4,'右上'],
+    ['mountain-pass',9,5,'左下'],['diagonal-valley',7,4,'左下'],
+    ['twin-bridges',9,6,'左下'],['forest-corridor',6,4,'左下'],
   ]) {
     await page.goto(`/battle/${id}`);
     await expect(page.locator('#ally-count')).toHaveText(`${String(total).padStart(2,'0')} / ${String(total).padStart(2,'0')}`);
@@ -17,27 +17,46 @@ test('revised operations deploy different force sizes and corners with an extrac
   }
 });
 
-test('new contacts stop movement, announce the encounter and can be undone',async({page})=>{
+test('new contacts announce the encounter while movement reaches the destination and can be undone',async({page})=>{
+  await page.route('**/src/game/engine.js*',async route=>{
+    const response=await route.fetch();
+    const body=(await response.text()).replace(/updateMission\(s\);\s*return s;/,`updateMission(s);
+      delete s.gridLayout;
+      s.cols=9;s.rows=9;s.terrain=Array.from({length:9},()=>Array(9).fill(0));
+      const blue=s.units.find(u=>u.team==='blue'),red=s.units.find(u=>u.team==='red');
+      Object.assign(blue,{id:1,x:0,y:4,vision:2,move:6});
+      Object.assign(red,{id:2,x:6,y:4});
+      s.units=[blue,red];s.deployments=s.units.map(u=>({...u}));s.landmarks=[];
+      s.mission={...s.mission,points:[{x:8,y:0}],required:1};s.selectedId=1;
+      updateFog(s);
+      return s;`);
+    await route.fulfill({response,body});
+  });
+  await page.route('**/src/game/reducer.js*',async route=>{
+    const response=await route.fetch();
+    const body=(await response.text())
+      .replaceAll('return s;','window.__encounterState=s;return s;')
+      .replace('return restored;','window.__encounterState=restored;return restored;');
+    await route.fulfill({response,body});
+  });
   await page.goto('/battle/mountain-pass');
   const target=await page.evaluate(async()=>{
-    const {initialGame,gameReducer}=await import('/src/game/reducer.js');
-    const {reachable}=await import('/src/game/engine.js');
+    const {initialGame}=await import('/src/game/reducer.js');
     const {createView,project}=await import('/src/rendering/projection.js');
     const s=initialGame(),r=document.querySelector('#map').getBoundingClientRect();
-    for(const path of reachable(s,s.units[0]).values()) {
-      const end=path.at(-1),next=gameReducer(s,{type:'CELL',...end});
-      if(next.notice.message.includes('发现'))return project(createView(s,r.width,r.height),end.x+.5,end.y+.5);
-    }
-    throw new Error('No first-turn scouting contact found');
+    return project(createView(s,r.width,r.height),5.5,4.5);
   });
   await page.locator('#map').click({position:target});
-  await expect(page.locator('.battle-feedback')).toContainText('行军已暂停');
+  await expect(page.locator('.battle-feedback')).toContainText('发现 1 辆敌军');
+  await expect(page.locator('.battle-feedback')).toContainText('移动完成');
+  await expect.poll(()=>page.evaluate(()=>window.__encounterState.units[0].x)).toBe(5);
   await expect(page.locator('#attack-mode')).toBeEnabled();
   await expect(page.locator('#end-turn')).toBeEnabled();
   await page.screenshot({path:'test-results/scouting-contact.png'});
   await page.locator('#undo').click();
   await expect(page.locator('#move-mode')).toBeEnabled();
   await expect(page.locator('.battle-feedback')).toContainText('已撤回');
+  await expect.poll(()=>page.evaluate(()=>window.__encounterState.units[0].x)).toBe(0);
 });
 
 test('crossing wins through extraction while enemies survive and result undo restores progress',async({page})=>{

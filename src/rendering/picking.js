@@ -12,7 +12,7 @@ export function pickUnit(game,view,point,overDestination=false,movements=[],now=
     const distance=((point.x-center.x)/((narrow?12:15)*view.scale*VEHICLE_SCALE))**2+((point.y-center.y)/((narrow?4:12)*view.scale*VEHICLE_SCALE))**2;
     if(distance>1)continue;
     // Match the nearest model, using painter depth only for exact ties.
-    if(distance<bestDistance||(distance===bestDistance&&u.x>best.x)){
+    if(distance<bestDistance||(distance===bestDistance&&project(view,u.x+.5,u.y+.5).y>project(view,best.x+.5,best.y+.5).y)){
       best=u;bestDistance=distance;
     }
   }

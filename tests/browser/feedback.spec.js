@@ -1,13 +1,15 @@
 import { test, expect } from '@playwright/test';
-import { selectMapUnit } from './unit-selection.js';
+import { selectMapUnit, sourcePosition } from './unit-selection.js';
 import { SCENARIOS } from '../../src/game/scenarios.js';
 
 async function moveScout(page) {
   const point = await page.evaluate(async () => {
     const { createState } = await import('/src/game/engine.js');
+    const { sourceToHex } = await import('/src/game/layout.js');
     const { createView, project } = await import('/src/rendering/projection.js');
     const r = document.querySelector('#map').getBoundingClientRect();
-    return project(createView(createState(), r.width, r.height), 16.5, 3.5);
+    const state=createState(),target=sourceToHex(state,{x:16,y:3});
+    return project(createView(state, r.width, r.height), target.x+.5, target.y+.5);
   });
   await page.locator('#map').click({ position: point });
 }
@@ -20,7 +22,7 @@ async function victoryFixture(page, defeat = false) {
     s.mission = null;
     const enemy = s.units.find(u => u.team === 'red');
     s.units = s.units.filter(u => u.team === 'blue' || u.id === enemy.id);
-    Object.assign(enemy, { x: 16, y: 3, hp: 1 });
+    Object.assign(enemy, { x: s.units[0].x-1, y: s.units[0].y, hp: 1 });
     if (${defeat}) {
       s.units = [s.units[0], enemy];
       s.units[0].hp = 1;
@@ -107,14 +109,14 @@ test('guide pauses enemy commands until it closes', async ({ page }) => {
 test('victory records persist by difficulty, result supports undo and the next battle', async ({ page }) => {
   await victoryFixture(page);
   await page.goto('/battle/mountain-pass?difficulty=hard');
-  await selectMapUnit(page, 10, { x: 16, y: 3 });
+  await selectMapUnit(page, 10, await sourcePosition(page,{x:16,y:3}));
   const result = page.getByRole('dialog', { name: '战区已肃清' });
   await expect(result).toBeVisible();
   await expect(result.getByLabel('本场战报')).toContainText('存活车辆');
   await result.getByRole('button', { name: '撤回最后一步', exact: false }).click();
   await expect(result).toHaveCount(0);
   await expect(page.locator('#attack-mode')).toBeEnabled();
-  await selectMapUnit(page, 10, { x: 16, y: 3 });
+  await selectMapUnit(page, 10, await sourcePosition(page,{x:16,y:3}));
   await expect(result).toBeVisible();
   await page.screenshot({ path: 'test-results/victory-desktop.png' });
   await page.setViewportSize({ width: 320, height: 640 });

@@ -1,12 +1,13 @@
 import { rangeContours, roundedPath } from './contours.js';
 import { movementPosition, vehicleMotion } from '../game/movement.js';
-import { VEHICLE_SCALE } from './projection.js';
+import { VEHICLE_SCALE, tableBounds } from './projection.js';
 import { createPainter } from './primitives.js';
-import { drawVehicleModel } from './vehicles.js';
+import { drawVehicleBase, drawVehicleModel } from './vehicles.js';
 import { createTerrainRenderer } from './terrain.js';
+import { drawEnvironmentGround, getEnvironmentItems, drawEnvironmentItem } from './environment.js';
 import { combatMotion, vehicleKick, drawCombat } from './combat.js';
 import { reachable, inFireRange, distance, onMap } from '../game/engine.js';
-import { HEX_DIRECTIONS, hexCorners, roundHex } from '../game/hex.js';
+import { hexCorners, roundHex } from '../game/hex.js';
 
 const dataCache = new WeakMap();
 export function getBattlefieldData(state,preview=false) {
@@ -27,36 +28,44 @@ export function getBattlefieldData(state,preview=false) {
     if(unit.hp>0)units.set(key,unit);
     else wrecks.set(key,(wrecks.get(key)||0)+1);
   }
-  const data={selected,moves,fire,repair,units,wrecks,moveContours:rangeContours(moves),fireContours:rangeContours(fire),repairContours:rangeContours(repair)};
+  const protectedCells=new Set(state.mission?.kind==='defend'?state.mission.points.map(point=>`${point.x},${point.y}`):[]);
+  const data={selected,moves,fire,repair,units,wrecks,moveContours:rangeContours(moves),fireContours:rangeContours(fire),repairContours:rangeContours(repair),defenseContours:rangeContours(protectedCells)};
   variants.set(preview,data);return data;
 }
 
-function drawTerrainGround(ctx,view,state) {
-  const painter=createPainter(ctx,view),{p,polygon,line,scale}=painter;
-  const terrain=createTerrainRenderer(painter,state);
-  // Raised terrain cutaway with layered earth.
+// A warm wooden toy tray contains the hexes and a continuous painted meadow.
+export function drawTabletop(painter,state) {
+  const {ctx,p,polygon,line,scale}=painter;
+  const outer=tableBounds(state,.75).corners,inner=tableBounds(state,.25).corners;
+  const lip=tableBounds(state,.29).corners;
+  const lower=outer.map(([x,y])=>p(x,y,-22));
+  const top=outer.map(([x,y])=>p(x,y,0));
   ctx.save();
-  ctx.shadowColor='#00000080';ctx.shadowBlur=24*scale;ctx.shadowOffsetY=14*scale;
-  ctx.beginPath();
-  for(let y=0;y<state.rows;y++)for(let x=0;x<state.cols;x++) {
-    if(!onMap(state,x,y))continue;
-    const corners=hexCorners(x,y).map(([a,b])=>p(a,b,-22));
-    corners.forEach((point,i)=>i?ctx.lineTo(point.x,point.y):ctx.moveTo(point.x,point.y));
-    ctx.closePath();
-  }
-  ctx.fillStyle='#101812';ctx.fill();
+  ctx.shadowColor='#00000070';ctx.shadowBlur=18*scale;ctx.shadowOffsetX=5*scale;ctx.shadowOffsetY=12*scale;
+  polygon(lower,'#5e4e38');
   ctx.restore();
-  for(let y=0;y<state.rows;y++)for(let x=0;x<state.cols;x++) {
-    if(!onMap(state,x,y))continue;
-    const corners=hexCorners(x,y);
-    for(const [index,[dx,dy]] of HEX_DIRECTIONS.entries()) {
-      if(onMap(state,x+dx,y+dy))continue;
-      const a=corners[index],b=corners[(index+1)%6];
-      polygon([p(...a),p(...b),p(...b,-22),p(...a,-22)],dx?'#655b48':'#484638');
-      for(const z of [-7,-14,-21])line(p(...a,z),p(...b,z),'#25362b88',.8);
-      line(p(...a),p(...b),'#a79974',1.7);
-    }
+  const center=top.reduce((sum,a)=>({x:sum.x+a.x/4,y:sum.y+a.y/4}),{x:0,y:0});
+  const edges=top.map((a,i)=>({i,depth:(a.y+top[(i+1)%4].y)/2})).sort((a,b)=>a.depth-b.depth);
+  for(const {i} of edges) {
+    const j=(i+1)%4,lit=(top[i].x+top[j].x)/2<center.x;
+    polygon([top[i],top[j],lower[j],lower[i]],lit?'#b08a56':'#8b6842','#685036',.6);
+    for(const z of [-7,-16])line(p(...outer[i],z),p(...outer[j],z),lit?'#e1c38a55':'#674b3433',.65);
   }
+  polygon(inner.map(([x,y])=>p(x,y,-3)),'#7f9b66');
+  for(let i=0;i<4;i++) {
+    const j=(i+1)%4;
+    polygon([top[i],top[j],p(...lip[j]),p(...lip[i])],'#c1a06b','#806341',.55);
+    polygon([p(...lip[i]),p(...lip[j]),p(...inner[j]),p(...inner[i])],'#e6ce98');
+    polygon([p(...inner[i]),p(...inner[j]),p(...inner[j],-3),p(...inner[i],-3)],'#938759');
+    const mid={x:(top[i].x+top[j].x)/2,y:(top[i].y+top[j].y)/2};
+    line(top[i],top[j],mid.x+mid.y<center.x+center.y?'#f3deb0':'#a18153',1);
+    line(p(...inner[i]),p(...inner[j]),'#f7e6bd',.65);
+  }
+}
+
+function drawTerrainGround(ctx,view,state) {
+  const painter=createPainter(ctx,view),terrain=createTerrainRenderer(painter,state);
+  drawTabletop(painter,state);
   for(let y=0;y<state.rows;y++)for(let x=0;x<state.cols;x++) {
     if(state.terrain[y][x]>=0)terrain.ground(x,y,state.fog[y][x]);
   }
@@ -67,6 +76,9 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
   const terrain=createTerrainRenderer(painter,state);
   function vehicle(u) {
     const {x,y}=u,blue=u.team==='blue',center=p(x+.5,y+.5);
+    ctx.save();ctx.translate(center.x,center.y);ctx.scale(VEHICLE_SCALE,VEHICLE_SCALE);ctx.translate(-center.x,-center.y);
+    drawVehicleBase(painter,u);
+    ctx.restore();
     const kick=vehicleKick(u,effects,view,now,reducedMotion);
     ctx.save();ctx.translate(kick.x,kick.y);ctx.translate(center.x,center.y);ctx.scale(VEHICLE_SCALE,VEHICLE_SCALE);ctx.translate(-center.x,-center.y);
     const motion=vehicleMotion(u,movements,now,reducedMotion);
@@ -100,15 +112,15 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
   ctx.clearRect(0,0,view.width,view.height);
   if(!preview){
     const sky=ctx.createLinearGradient(0,0,view.width,view.height);
-    sky.addColorStop(0,'#343b3e');sky.addColorStop(.48,'#48483e');sky.addColorStop(1,'#171e24');
+    sky.addColorStop(0,'#35494b');sky.addColorStop(.48,'#465b4b');sky.addColorStop(1,'#23363d');
     ctx.fillStyle=sky;ctx.fillRect(0,0,view.width,view.height);
     const haze=ctx.createRadialGradient(view.width*.28,view.height*.18,0,view.width*.28,view.height*.18,view.width*.7);
-    haze.addColorStop(0,'#cbb58c26');haze.addColorStop(1,'#a0927700');
+    haze.addColorStop(0,'#e4edc426');haze.addColorStop(1,'#a0927700');
     ctx.fillStyle=haze;ctx.fillRect(0,0,view.width,view.height);
   }
   ctx.save();
   const shake=combatMotion(effects,now,reducedMotion);ctx.translate(shake.x,shake.y);
-  const {selected,moves,units,wrecks,moveContours,fireContours,repairContours}=getBattlefieldData(state,preview);
+  const {selected,moves,units,wrecks,moveContours,fireContours,repairContours,defenseContours}=getBattlefieldData(state,preview);
   function area(contours,color,fill,dashed=false) {
     ctx.save();ctx.lineJoin='round';ctx.lineCap='round';ctx.setLineDash(dashed?[5*scale,5*scale]:[]);
     ctx.beginPath();
@@ -116,12 +128,15 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
     ctx.fillStyle=fill;ctx.fill('evenodd');ctx.strokeStyle=color;ctx.lineWidth=1.4*scale;ctx.stroke();ctx.restore();
   }
   function marker(x,y,color,fill) {
-    tile(x,y,fill,color,.065,1,1.5);
-    const center=p(x+.5,y+.5,1),radius=Math.abs(p(x+.5,y+1).x-p(x+.5,y).x)*.42;
-    ctx.save();ctx.translate(center.x,center.y);ctx.scale(1,view.th*.43/radius);
+    const center=p(x+.5,y+.5,1),corners=hexCorners(x,y).map(([a,b])=>p(a,b));
+    const radius=Math.max(1,(Math.max(...corners.map(p=>p.x))-Math.min(...corners.map(p=>p.x)))*.4);
+    const depth=Math.max(1,(Math.max(...corners.map(p=>p.y))-Math.min(...corners.map(p=>p.y)))*.4);
+    ctx.save();ctx.translate(center.x,center.y);ctx.scale(1,depth/radius);
     const glow=ctx.createRadialGradient(0,0,radius*.25,0,0,radius*1.25);
     glow.addColorStop(0,fill);glow.addColorStop(.7,fill);glow.addColorStop(1,'#0000');
     ctx.fillStyle=glow;ctx.beginPath();ctx.arc(0,0,radius*1.25,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=color;ctx.lineWidth=1.3*scale;
+    ctx.beginPath();ctx.arc(0,0,radius,0,Math.PI*2);ctx.stroke();
     ctx.restore();
   }
 
@@ -129,6 +144,9 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
     cache.prepare(state,view,dpr);
     cache.ground(ctx,view,state,drawTerrainGround,dpr);
   }else drawTerrainGround(ctx,view,state);
+  // Draw after the cached ground so feature overlays survive every cache path.
+  drawEnvironmentGround(painter,state);
+  area(defenseContours,'#ffe4a1ee','#f8d27728');
   area(moveContours,'#a8dbe6bb','#b1e9ef14');
   area(fireContours,'#eec39eaa','#ffc69f0c',true);
   area(repairContours,'#b5e7c8bb','#b5e7c816');
@@ -144,6 +162,7 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
   }
   const objectives=state.mission?.points||(state.mission?.point?[state.mission.point]:[]);
   for(const [index,point] of objectives.entries()){
+    if(state.mission?.kind==='defend')continue;
     const secured=state.mission?.kind==='breakthrough'
       ? state.units.some(u=>u.team==='blue'&&u.hp>0&&u.x===point.x&&u.y===point.y)
       : state.missionProgress?.captured?.[index];
@@ -155,8 +174,12 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
   }
   // Ghost a planned route without querying or drawing unknown enemy positions.
   const route=hover&&moves.get(`${hover.x},${hover.y}`);
-  if(route&&selected){ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();roundedPath(ctx,[selected,...route].map(cell=>p(cell.x+.5,cell.y+.5,2)),6*scale,false);ctx.strokeStyle='#dce8bdba';ctx.lineWidth=2*scale;ctx.stroke();ctx.restore();}
-  const movingIds=new Set(),movingCells=new Map();
+  if(route&&selected){
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='miter';ctx.beginPath();
+    [selected,...route].forEach((cell,i)=>{const point=p(cell.x+.5,cell.y+.5,2);if(i)ctx.lineTo(point.x,point.y);else ctx.moveTo(point.x,point.y);});
+    ctx.strokeStyle='#c6d2a9c9';ctx.lineWidth=1.5*scale;ctx.stroke();ctx.restore();
+  }
+  const movingIds=new Set(),drawItems=[];
   for(const movement of movements){
     const unit=state.units.find(u=>u.id===movement.unitId&&u.hp>0);
     if(!unit||reducedMotion)continue;
@@ -164,12 +187,21 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
     const {x,y}=roundHex(position.x,position.y);
     movingIds.add(unit.id);
     if(unit.team==='red'&&state.fog[y]?.[x])continue;
-    const key=`${x},${y}`;
-    if(!movingCells.has(key))movingCells.set(key,[]);
-    movingCells.get(key).push(position);
+    drawItems.push({unit:position,depth:p(position.x+.5,position.y+.5).y});
   }
   for(let x=0;x<state.cols;x++)for(let y=0;y<state.rows;y++) {
     if(!onMap(state,x,y))continue;
+    drawItems.push({x,y,depth:p(x+.5,y+.5).y});
+    const unit=units.get(`${x},${y}`);
+    if(unit&&!movingIds.has(unit.id)&&(unit.team==='blue'||!state.fog[y][x]))drawItems.push({unit,depth:p(x+.5,y+.5).y});
+  }
+  for(const environment of getEnvironmentItems(state))drawItems.push({environment,depth:p(environment.x,environment.y).y});
+  // Ground depth follows the camera; moving models retain their interpolated depth.
+  drawItems.sort((a,b)=>a.depth-b.depth||Number(Boolean(a.unit))-Number(Boolean(b.unit)));
+  for(const item of drawItems) {
+    if(item.environment){drawEnvironmentItem(painter,item.environment,state);continue;}
+    if(item.unit){vehicle(item.unit);continue;}
+    const {x,y}=item;
     const hidden=state.fog[y][x];
     if(cache)cache.details(ctx,view,state,x,y,hidden,terrain.details,dpr);
     else terrain.details(x,y,hidden);
@@ -190,8 +222,6 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
         ctx.restore();
       }
     }
-    const u=units.get(`${x},${y}`);if(u&&!movingIds.has(u.id)&&(u.team==='blue'||!hidden))vehicle(u);
-    for(const moving of movingCells.get(`${x},${y}`)||[])vehicle(moving);
   }
   if(!preview)for(const landmark of state.landmarks){const v=p(landmark.x+.5,landmark.y+.5,10);ctx.font=`${Math.max(9,10*scale)}px sans-serif`;ctx.textAlign='center';const w=ctx.measureText(landmark.label).width+15;ctx.fillStyle='#38291fe8';ctx.fillRect(v.x-w/2,v.y-9,w,17);ctx.fillStyle='#ffe6ae';ctx.fillText(landmark.label,v.x,v.y+3);}
   drawCombat(ctx,view,effects,now,reducedMotion);
@@ -199,7 +229,7 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
   if(!preview){
     ctx.save();
     const vignette=ctx.createRadialGradient(view.width*.48,view.height*.48,Math.min(view.width,view.height)*.22,view.width*.5,view.height*.5,Math.max(view.width,view.height)*.68);
-    vignette.addColorStop(0,'#10171e00');vignette.addColorStop(1,'#0b111b96');
+    vignette.addColorStop(0,'#10171e00');vignette.addColorStop(1,'#0b1b285e');
     ctx.fillStyle=vignette;ctx.fillRect(0,0,view.width,view.height);
     ctx.restore();
   }

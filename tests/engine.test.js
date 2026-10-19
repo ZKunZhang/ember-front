@@ -1,3 +1,4 @@
+import { sourceToHex, hexToSource } from '../src/game/layout.js';
 import { HEX_DIRECTIONS, hexDistance } from '../src/game/hex.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -26,11 +27,12 @@ test('six ground vehicle types and all scenario forces have legal unique deploym
   }
 });
 test('mountain pass and north road are independent, both bridges are useful',()=>{
+  const block=(s,x,y,terrain)=>{const p=sourceToHex(s,{x,y});s.terrain[p.y][p.x]=terrain;};
   const s=createState('mountain-pass'),from=s.units[0],to=s.mission.points[0];
-  for(let x=10;x<=12;x++)s.terrain[11][x]=1;
-  const route=terrainRoute(s,from,to);assert.ok(route);assert.ok(route.some(p=>p.x===11&&p.y<=5));
-  for(const blocked of [5,12]){const b=createState('twin-bridges');for(let x=10;x<=12;x++)b.terrain[blocked][x]=4;const path=terrainRoute(b,b.units[0],b.mission.points[0]);assert.ok(path);assert.ok(path.some(p=>p.x===11&&p.y===(blocked===5?12:5)));}
-  const b=createState('twin-bridges');for(const y of [5,12])for(let x=10;x<=12;x++)b.terrain[y][x]=4;assert.equal(terrainRoute(b,b.units[0],b.mission.points[0]),null);
+  for(let x=10;x<=12;x++)block(s,x,11,1);
+  const route=terrainRoute(s,from,to);assert.ok(route);assert.ok(route.map(p=>hexToSource(s,p)).some(p=>p.x===11&&p.y<=5));
+  for(const blocked of [5,12]){const b=createState('twin-bridges');for(let x=10;x<=12;x++)block(b,x,blocked,4);const path=terrainRoute(b,b.units[0],b.mission.points[0]);assert.ok(path);assert.ok(path.map(p=>hexToSource(b,p)).some(p=>p.x===11&&p.y===(blocked===5?12:5)));}
+  const b=createState('twin-bridges');for(const y of [5,12])for(let x=10;x<=12;x++)block(b,x,y,4);assert.equal(terrainRoute(b,b.units[0],b.mission.points[0]),null);
 });
 test('BFS never crosses mountains, woodland, water, void or known units',()=>{
   const s=state([unit(1,'blue','scout',3,3),unit(2,'red','tank',2,3)]);s.terrain[3][4]=1;s.terrain[2][3]=4;s.terrain[4][3]=-1;s.terrain[4][2]=2;s.terrain[2][4]=1;

@@ -1,3 +1,4 @@
+import { sourceToHex } from '../src/game/layout.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { combatMotion, vehicleKick, IMPACT_DELAY, EFFECT_DURATION } from '../src/rendering/combat.js';
@@ -6,8 +7,8 @@ import { createView } from '../src/rendering/projection.js';
 
 test('shot effects retain a visible source and lethal target for the animation',()=>{
   const s=initialGame(),red=s.units.find(u=>u.team==='red');
-  red.x=16;red.y=3;red.hp=1;s.fog[3][16]=false;
-  const next=gameReducer(s,{type:'CELL',x:16,y:3});
+  Object.assign(red,sourceToHex(s,{x:16,y:3}),{hp:1});s.fog[red.y][red.x]=false;
+  const next=gameReducer(s,{type:'CELL',...sourceToHex(s,{x:16,y:3})});
   assert.equal(next.effect.source.id,s.selectedId);
   assert.equal(next.effect.targetId,red.id);
   assert.equal(next.effect.destroyed,true);

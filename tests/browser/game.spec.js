@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { SCENARIOS } from '../../src/game/scenarios.js';
-import { selectMapUnit } from './unit-selection.js';
+import { selectMapUnit, sourcePosition } from './unit-selection.js';
 
 test('campaign maps, nine vehicles, canvas movement, engine info and turn lifecycle', async ({page})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -16,10 +16,12 @@ test('campaign maps, nine vehicles, canvas movement, engine info and turn lifecy
   await page.screenshot({path:'test-results/range-contours.png',fullPage:true});
   const coords=await page.evaluate(async()=>{
     const {createState}=await import('/src/game/engine.js');
+    const {sourceToHex}=await import('/src/game/layout.js');
     const {createView,project,DEFAULT_ZOOM,VEHICLE_SCALE}=await import('/src/rendering/projection.js');
     const r=document.querySelector('#map').getBoundingClientRect();
-    const v=createView(createState('mountain-pass'),r.width,r.height);
-    const p=project(v,16.5,3.5);
+    const state=createState('mountain-pass'),target=sourceToHex(state,{x:16,y:3});
+    const v=createView(state,r.width,r.height);
+    const p=project(v,target.x+.5,target.y+.5);
     return {x:r.left+p.x,y:r.top+p.y};
   });
   await page.mouse.click(coords.x,coords.y);
@@ -31,7 +33,7 @@ test('campaign maps, nine vehicles, canvas movement, engine info and turn lifecy
   await expect(page.locator('#repair-mode')).toContainText('取消维修');
   await page.locator('#repair-mode').click();
   await expect(page.locator('.map-command-hint')).toContainText('点击蓝格移动');
-  await selectMapUnit(page, 1, {x:16,y:3});
+  await selectMapUnit(page, 1, await sourcePosition(page,{x:16,y:3}));
   await expect(page.locator('.unit-name')).toContainText('侦察车');
   await expect(page.locator('#attack-mode')).toBeVisible();
   await page.screenshot({path:'test-results/battle-desktop.png',fullPage:true});
@@ -72,15 +74,17 @@ test('visible enemy click fires directly and shows intel without a mode switch',
   // Place one enemy in initial sight so this test does not depend on AI movement.
   await page.route('**/src/game/engine.js*',async route=>{
     const response=await route.fetch();
-    const body=(await response.text()).replace(/updateMission\(s\);\s*return s;/,`updateMission(s); Object.assign(s.units.find(u=>u.team==='red'),{x:16,y:3}); updateFog(s); return s;`);
+    const body=(await response.text()).replace(/updateMission\(s\);\s*return s;/,`updateMission(s); Object.assign(s.units.find(u=>u.team==='red'),{x:s.units[0].x-1,y:s.units[0].y}); updateFog(s); return s;`);
     await route.fulfill({response,body});
   });
   await page.goto('/operations');await page.getByTestId('deploy-mountain-pass').click();
   const point=await page.evaluate(async()=>{
     const {createState}=await import('/src/game/engine.js');
+    const {sourceToHex}=await import('/src/game/layout.js');
     const {createView,project,DEFAULT_ZOOM,VEHICLE_SCALE}=await import('/src/rendering/projection.js');
     const s=createState(),enemy=s.units.find(u=>u.team==='red');
-    if(enemy.x!==16||enemy.y!==3)throw new Error('Enemy inspection fixture was not applied');
+    const expected=sourceToHex(s,{x:16,y:3});
+    if(enemy.x!==expected.x||enemy.y!==expected.y)throw new Error('Enemy inspection fixture was not applied');
     const r=document.querySelector('#map').getBoundingClientRect();
     const p=project(createView(s,r.width,r.height),enemy.x+.5,enemy.y+.5,10*VEHICLE_SCALE);
     return {x:r.left+p.x,y:r.top+p.y,hp:enemy.hp};
@@ -163,9 +167,11 @@ for(const gesture of ['drag','trackpad','vertical-trackpad','touch'])test(`map p
   await expect(page.locator('#move-mode')).toContainText('移动');
   const destination=await page.evaluate(async ({dx,dy})=>{
     const {createState}=await import('/src/game/engine.js');
+    const {sourceToHex}=await import('/src/game/layout.js');
     const {createView,project,DEFAULT_ZOOM,VEHICLE_SCALE}=await import('/src/rendering/projection.js');
     const r=document.querySelector('#map').getBoundingClientRect();
-    const p=project(createView(createState(),r.width,r.height,DEFAULT_ZOOM,{x:dx,y:dy}),16.5,3.5);
+    const state=createState(),target=sourceToHex(state,{x:16,y:3});
+    const p=project(createView(state,r.width,r.height,DEFAULT_ZOOM,{x:dx,y:dy}),target.x+.5,target.y+.5);
     return{x:r.left+p.x,y:r.top+p.y};
   },{dx,dy});
   await page.mouse.move(destination.x,destination.y);
@@ -179,8 +185,8 @@ test('dense diagonal vehicle models select the hovered unit without moving it',a
   await page.goto('/operations');await page.getByTestId('deploy-mountain-pass').click();
   // Keep vehicle models clear of fixed corner commands when testing hit shapes.
   await page.locator('#map').dispatchEvent('wheel',{deltaY:160,deltaMode:0});
-  for(const zoom of [1.15,1.35]){
-    if(zoom>1.15)await page.locator('#map').dispatchEvent('wheel',{deltaY:-Math.log(1.35/1.15)/.006,ctrlKey:true});
+  for(const zoom of [1,1.2]){
+    if(zoom>1)await page.locator('#map').dispatchEvent('wheel',{deltaY:-Math.log(1.2/1)/.006,ctrlKey:true});
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const points=await page.evaluate(async zoom=>{
       const {createState}=await import('/src/game/engine.js');

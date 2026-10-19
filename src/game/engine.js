@@ -1,3 +1,4 @@
+import { terrainCost } from './terrain.js';
 import { UNIT_TYPES } from './catalog.js';
 import { createScenario } from './scenarios.js';
 import { DEFAULT_DIFFICULTY, applyEnemyDifficulty, getDifficulty } from './difficulty.js';
@@ -7,7 +8,9 @@ import { HEX_DIRECTIONS, hexDistance } from './hex.js';
 export const distance = hexDistance;
 export const keyOf = (x, y) => `${x},${y}`;
 export const onMap = (s, x, y) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0 && x < s.cols && y < s.rows && s.terrain[y][x] >= 0;
-export const passable = (s, x, y) => onMap(s, x, y) && [0,3].includes(s.terrain[y][x]);
+export const movementCost = (s, x, y) => onMap(s,x,y) ? terrainCost(s.terrain[y][x]) : Infinity;
+export const passable = (s, x, y) => Number.isFinite(movementCost(s,x,y));
+export const routeCost = (s, path) => path.reduce((total,p) => total + movementCost(s,p.x,p.y),0);
 export const unitAt = (s, x, y) => s.units.find(u => u.hp > 0 && u.x === x && u.y === y);
 
 export function createState(scenarioId, difficultyId = DEFAULT_DIFFICULTY, formationId) {
@@ -20,7 +23,7 @@ export function createState(scenarioId, difficultyId = DEFAULT_DIFFICULTY, forma
   });
   // The cursor is part of game state, so an undo also restores future AI choices.
   const aiSeed = ((Date.now() ^ Math.floor(Math.random() * 0x100000000)) >>> 0) || 1;
-  const s = { ...scenario, units, fog: [], selectedId: 1, turn: 'blue', turnNumber: 1, winner: null, aiSeed, missionProgress: { captured: [], heldTurns: 0 } };
+  const s = { ...scenario, units, fog: [], selectedId: 1, turn: 'blue', turnNumber: 1, winner: null, aiSeed, missionProgress: { captured: [], heldTurns: 0, defendedTurns: 0 } };
   updateFog(s);
   updateMission(s);
   return s;
@@ -41,23 +44,38 @@ function occupied(s, x, y, u, knownOnly) {
   return target && target.id !== u.id && (!knownOnly || target.team === u.team || !s.fog[y][x]);
 }
 
-// BFS paths use known occupancy for player previews, actual occupancy for AI.
+// Dijkstra paths use known occupancy for player previews, actual occupancy for AI.
 export function reachable(s, u, limit = u?.move ?? 0, knownOnly = u?.team === 'blue') {
   const out = new Map();
   if (!u || u.hp <= 0) return out;
-  const queue = [{x:u.x,y:u.y,path:[]}], seen = new Set([keyOf(u.x,u.y)]);
-  for (let i = 0; i < queue.length; i++) {
-    const current = queue[i];
-    if (current.path.length >= limit) continue;
+  const queue = [{x:u.x,y:u.y,path:[],cost:0}], costs = new Map([[keyOf(u.x,u.y),0]]);
+  while (queue.length) {
+    queue.sort((a,b)=>a.cost-b.cost);
+    const current = queue.shift();
+    if (current.cost !== costs.get(keyOf(current.x,current.y))) continue;
     for (const [dx,dy] of HEX_DIRECTIONS) {
-      const x = current.x + dx, y = current.y + dy, key = keyOf(x,y);
-      if (seen.has(key) || !passable(s,x,y) || occupied(s,x,y,u,knownOnly)) continue;
-      seen.add(key);
-      const path = [...current.path,{x,y}];
-      out.set(key,path); queue.push({x,y,path});
+      const x=current.x+dx, y=current.y+dy, key=keyOf(x,y);
+      const cost=current.cost+movementCost(s,x,y);
+      if (!Number.isFinite(cost) || cost>limit || cost>=(costs.get(key)??Infinity) || occupied(s,x,y,u,knownOnly)) continue;
+      const path=[...current.path,{x,y}];
+      costs.set(key,cost); out.set(key,path); queue.push({x,y,path,cost});
     }
   }
   return out;
+}
+
+// All enemy movement lands one cell at a time, including repair and retreat.
+function advance(s,u,route) {
+  const path=[];
+  let spent=0;
+  for (const point of route) {
+    const cost=movementCost(s,point.x,point.y);
+    if (spent+cost>u.move || unitAt(s,point.x,point.y)) break;
+    spent+=cost; Object.assign(u,point); path.push(point);
+    checkOutcome(s);
+    if (s.winner) break;
+  }
+  return path;
 }
 
 // Direct fire is blocked by mountains and woodland; indirect artillery ignores them.
@@ -84,16 +102,19 @@ export function moveUnit(s,id,x,y) {
   if (!path) return fail('无法到达：检查距离、地形与占位');
   const actual = [];
   const known=new Set(s.units.filter(t=>t.team==='red'&&t.hp>0&&!s.fog[t.y][t.x]).map(t=>t.id));
-  let encountered=0;
+  const discovered=new Set();
   for (const p of path) {
     if (unitAt(s,p.x,p.y)) break;
     Object.assign(u,p); actual.push(p);
     updateFog(s);
-    encountered=s.units.filter(t=>t.team==='red'&&t.hp>0&&!s.fog[t.y][t.x]&&!known.has(t.id)).length;
-    if(encountered)break;
+    for (const target of s.units) {
+      if (target.team==='red'&&target.hp>0&&!s.fog[target.y][target.x]&&!known.has(target.id)) discovered.add(target.id);
+    }
   }
   u.moved = true; updateFog(s); updateMission(s); checkOutcome(s);
-  return {ok:true,message:encountered?`发现 ${encountered} 辆敌军，行军已暂停 · 请调整后续部署`:actual.length===path.length?'移动完成，可指定目标开火或维修':'前方遭遇敌军，推进停止',path:actual,moved:actual.length,encountered};
+  const encountered=discovered.size;
+  const message=actual.length===path.length?'移动完成，可指定目标开火或维修':'前方敌军占据路线，已停在其前方';
+  return {ok:true,message:encountered?`发现 ${encountered} 辆敌军 · ${message}`:message,path:actual,moved:actual.length,encountered};
 }
 export function attackUnit(s,id,targetId) {
   const u = s.units.find(u=>u.id===id), t = s.units.find(u=>u.id===targetId), error = playerError(s,u);
@@ -158,8 +179,8 @@ function repairTarget(s, u, adjacentOnly = false) {
 function moveToRepair(s, u, target) {
   const routes = reachable(s,u,u.move,false);
   const choices = [...routes.values()].filter(path => distance(path.at(-1),target) === 1);
-  const path = choose(s, choices, path => -path.length);
-  if (path) Object.assign(u,path.at(-1));
+  const path = choose(s, choices, path => -routeCost(s,path));
+  if (path) return advance(s,u,path);
   return path || null;
 }
 function alertPatrol(s,unit) {
@@ -171,9 +192,9 @@ function retreat(s, u, enemies) {
   const choices = [...routes.values()].filter(path => threatAt(s,path.at(-1),enemies) < current);
   const path = choose(s, choices, path => {
     const point = path.at(-1);
-    return -threatAt(s,point,enemies) * 100 + Math.min(...enemies.map(t => distance(point,t))) - path.length;
+    return -threatAt(s,point,enemies) * 100 + Math.min(...enemies.map(t => distance(point,t))) - routeCost(s,path);
   });
-  if (path) Object.assign(u,path.at(-1));
+  if (path) return advance(s,u,path);
   return path || null;
 }
 
@@ -182,6 +203,8 @@ function retreat(s, u, enemies) {
 export function enemyAct(s,id) {
   const u = s.units.find(u=>u.id===id);
   if (s.winner || s.turn!=='red' || !u || u.team!=='red' || u.hp<=0) return {ok:false};
+  checkOutcome(s);
+  if (s.winner) return {ok:false};
   const origin = {x:u.x,y:u.y};
   let path = [];
   const enemies = s.units.filter(t=>t.team==='blue'&&t.hp>0);
@@ -194,6 +217,14 @@ export function enemyAct(s,id) {
     alertPatrol(s,u);
   }
   const targetsAt = point => enemies.filter(t=>inFireRange(s,{...u,...point},t));
+  if (s.mission?.kind==='defend' && !u.moved) {
+    const routes=reachable(s,u,Infinity,false);
+    const approaches=s.mission.points.filter(p=>!unitAt(s,p.x,p.y)).map(p=>routes.get(keyOf(p.x,p.y))).filter(Boolean);
+    const approach=choose(s,approaches,route=>-routeCost(s,route));
+    if (approach) { path=advance(s,u,approach);u.moved=true;updateFog(s); }
+    if (s.winner) return {ok:true,path,moved:path.length>0,hidden:s.fog[u.y][u.x],message:'敌军突破机场防线'};
+  }
+
   if (!u.fired && u.repair) {
     // Preserve the adjacent repair action before considering a hard-AI reposition.
     let damaged = repairTarget(s,u,true);
@@ -204,6 +235,7 @@ export function enemyAct(s,id) {
         path = approach;
         u.moved = true;
         updateFog(s);
+        if (s.winner) return {ok:true,path,moved:path.length>0,hidden:s.fog[u.y][u.x],message:'敌军突破机场防线'};
         damaged = distance(distant,u)===1 ? distant : repairTarget(s,u,true);
       }
     }
@@ -217,8 +249,9 @@ export function enemyAct(s,id) {
     const escape = retreat(s,u,enemies);
     if (escape) { path=escape;u.moved=true; }
   }
+  if (s.winner) { updateFog(s); return {ok:true,path,moved:path.length>0,hidden:s.fog[u.y][u.x],message:'敌军突破机场防线'}; }
   if (!targetsAt(u).length && !u.moved) {
-    const routes = reachable(s,u,s.cols*s.rows,false);
+    const routes = reachable(s,u,Infinity,false);
     const firingPaths = [];
     for (const path of routes.values()) {
       const point = path.at(-1), targets = targetsAt(point);
@@ -228,12 +261,13 @@ export function enemyAct(s,id) {
       const target = targetFor(s,{...u,...candidate.point},candidate.targets,mode);
       // Tactical and coordinated AI prefer a useful firing position, then a short route.
       const targetScore = mode === 'direct' ? 0 : targetValue(target) + (1 - healthRatio(target)) * 10 + (u.attack >= target.hp + target.armor ? 1000 : 0);
-      return targetScore * 100 - candidate.path.length;
+      return targetScore * 100 - routeCost(s,candidate.path);
     });
-    if (best && u.move>0) { path=best.path.slice(0,u.move);Object.assign(u,path.at(-1)); }
+    if (best && u.move>0) { path=advance(s,u,best.path); }
     u.moved = true;
   }
   updateFog(s);
+  if (s.winner) return {ok:true,path,moved:path.length>0,hidden:s.fog[u.y][u.x],message:'敌军突破机场防线'};
   const hidden = s.fog[u.y][u.x], target = targetFor(s,u,targetsAt(u),mode);
   if (target && !u.fired) {
     const damage = damageFor(u,target);
@@ -249,6 +283,12 @@ export function checkOutcome(s) {
   const blue = s.units.filter(u=>u.team==='blue'&&u.hp>0);
   if (!blue.length) { s.winner='red'; return s.winner; }
   const mission = s.mission;
+  if (mission?.kind==='defend') {
+    const red=s.units.filter(u=>u.team==='red'&&u.hp>0);
+    if (red.some(u=>mission.points.some(p=>p.x===u.x&&p.y===u.y))) s.winner='red';
+    else if (!red.length || (s.missionProgress?.defendedTurns??0)>=mission.turns) s.winner='blue';
+    return s.winner;
+  }
   if (mission?.kind==='breakthrough') {
     if (blue.length < mission.required) s.winner='red';
     else if (breakthroughArrivals(s).length >= mission.required) s.winner='blue';
@@ -256,7 +296,7 @@ export function checkOutcome(s) {
   }
   if (mission?.kind==='escort' && !blue.some(u=>u.type==='engineer')) { s.winner='red'; return s.winner; }
   if (mission) {
-    const progress = s.missionProgress ?? { captured: [], heldTurns: 0 };
+    const progress = s.missionProgress ?? { captured: [], heldTurns: 0, defendedTurns: 0 };
     if (mission.kind==='capture' && progress.captured.length===mission.points.length && progress.captured.every(Boolean)) s.winner='blue';
     else if (mission.kind==='escort' && blue.some(u=>u.type==='engineer'&&u.x===mission.point.x&&u.y===mission.point.y)) s.winner='blue';
     else if (mission.kind==='hold' && (progress.heldTurns>=mission.turns || !s.units.some(u=>u.team==='red'&&u.hp>0))) s.winner='blue';
@@ -270,10 +310,13 @@ export function breakthroughArrivals(s) {
 
 export function updateMission(s,endEnemyTurn=false) {
   const mission=s.mission;
-  const progress=s.missionProgress ?? (s.missionProgress={captured:[],heldTurns:0});
+  const progress=s.missionProgress ?? (s.missionProgress={captured:[],heldTurns:0,defendedTurns:0});
   if (!mission || s.winner) return progress;
   const blue=s.units.filter(u=>u.team==='blue'&&u.hp>0);
-  if (mission.kind==='capture') {
+  if (mission.kind==='defend' && endEnemyTurn) {
+    checkOutcome(s);
+    if (!s.winner) progress.defendedTurns=(progress.defendedTurns??0)+1;
+  } else if (mission.kind==='capture') {
     progress.captured=mission.points.map((point,index)=>Boolean(progress.captured[index])||blue.some(u=>u.x===point.x&&u.y===point.y));
   } else if (mission.kind==='hold' && endEnemyTurn) {
     progress.heldTurns=blue.some(u=>u.x===mission.point.x&&u.y===mission.point.y) ? progress.heldTurns+1 : 0;

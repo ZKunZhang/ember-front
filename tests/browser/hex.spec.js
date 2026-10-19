@@ -8,7 +8,7 @@ for(const width of [1440,390])test(`six neighboring hexes accept one-step moveme
   await page.route('**/src/game/engine.js*',async route=>{
     const response=await route.fetch();
     const body=(await response.text()).replace(/updateMission\(s\);\s*return s;/,`updateMission(s);
-      s.mission=null;
+      s.mission=null;delete s.gridLayout;
       s.terrain=s.terrain.map(row=>row.map(()=>0));
       s.units=[s.units[0],s.units[1],s.units.find(u=>u.team==='red')];
       Object.assign(s.units[0],{x:10,y:8,move:1,vision:3});

@@ -1,3 +1,4 @@
+import { sourceToHex } from '../src/game/layout.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { initialGame, gameReducer } from '../src/game/reducer.js';
@@ -80,7 +81,7 @@ test('range cache updates for actions, selection, undo and preview mode',()=>{
   assert.equal(first,getBattlefieldData(game));
   assert.ok(first.moves.size>0);
   assert.equal(getBattlefieldData(game,true).moves.size,0);
-  const moved=gameReducer(game,{type:'CELL',x:16,y:3});
+  const moved=gameReducer(game,{type:'CELL',...sourceToHex(game,{x:16,y:3})});
   assert.notEqual(getBattlefieldData(moved),first);
   assert.equal(getBattlefieldData(moved).moves.size,0);
   const undo=gameReducer(moved,{type:'UNDO'});

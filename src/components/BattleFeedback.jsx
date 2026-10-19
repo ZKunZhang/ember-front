@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 export default function BattleFeedback({ game, active }) {
   const [visible, setVisible] = useState(false);
+  const deploymentExplained=game.mission?.kind==='defend'&&game.notice?.cue==='deploy';
   useEffect(() => {
     if (!game.notice) { setVisible(false); return; }
     setVisible(true);
@@ -9,7 +10,7 @@ export default function BattleFeedback({ game, active }) {
     return () => clearTimeout(timer);
   }, [game.session, game.notice?.id]);
   return <div className="battle-feedback" role="status" aria-live="polite" aria-atomic="true">
-    {visible && active && !game.winner && <div key={`${game.session}:${game.notice.id}`} className={`feedback-message ${game.notice.kind}`}>
+    {visible && active && !game.winner && !deploymentExplained && <div key={`${game.session}:${game.notice.id}`} className={`feedback-message ${game.notice.kind}`}>
       <span aria-hidden="true">{game.notice.kind === 'warn' ? '!' : game.notice.kind === 'enemy' ? '⌖' : '✓'}</span>
       <p>{game.notice.message}</p>
     </div>}

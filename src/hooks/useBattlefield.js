@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   createView,
+  project,
   unproject,
   DEFAULT_ZOOM,
+  initialRotation,
 } from '../rendering/projection.js';
 import { pickUnit } from '../rendering/picking.js';
 import {
@@ -14,36 +16,55 @@ import { movementDuration } from '../game/movement.js';
 import { EFFECT_DURATION } from '../rendering/combat.js';
 import { onMap } from '../game/engine.js';
 
-export function useBattlefield(game, onCell) {
+const initialCamera=game=>({zoom:DEFAULT_ZOOM,pan:{x:0,y:0},rotation:initialRotation(game),tilt:1});
+const clampZoom=zoom=>Math.max(.65,Math.min(2.8,zoom));
+const clampTilt=tilt=>Math.max(.65,Math.min(1.35,tilt));
+const normalizeAngle=angle=>Math.atan2(Math.sin(angle),Math.cos(angle));
+const touchGesture=points=>{
+  const [a,b]=[...points.values()];
+  return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),angle:Math.atan2(b.y-a.y,b.x-a.x)};
+};
+
+export function useBattlefield(game, onCell, focusTarget) {
   const canvasRef = useRef(null),
     drag = useRef(null),
     effectRef = useRef([]),
     previousEffect = useRef(null),
     movementRef = useRef([]),
-    previousMovement = useRef(null);
+    previousMovement = useRef(null),
+    touches=useRef(new Map()),
+    pinch=useRef(null);
   const [size, setSize] = useState({ width: 800, height: 620 }),
-    [camera, setCamera] = useState({ zoom: DEFAULT_ZOOM, pan: { x: 0, y: 0 } }),
+    [camera, setCamera] = useState(()=>initialCamera(game)),
     [hover, setHover] = useState(null),
-    [dragging, setDragging] = useState(false);
+    [dragging, setDragging] = useState(false),
+    [interacting,setInteracting]=useState(false);
   const cacheRef = useRef(null),
     cameraFrame = useRef(null),
+    interactionTimer=useRef(null),
     cameraUpdates = useRef([]);
   if (!cacheRef.current) cacheRef.current = createTerrainCache();
   // Panning changes only the origin; fitting all map vertices is a zoom/resize task.
   const baseView = useMemo(
-    () => createView(game, size.width, size.height, camera.zoom),
-    [game.terrain, size, camera.zoom],
+    () => createView(game, size.width, size.height, camera.zoom,undefined,camera),
+    [game.terrain, size, camera.zoom,camera.rotation,camera.tilt],
   );
   const view = useMemo(
     () => ({
       ...baseView,
       ox: baseView.ox + camera.pan.x,
       oy: baseView.oy + camera.pan.y,
+      interactive:interacting,
     }),
-    [baseView, camera.pan],
+    [baseView, camera.pan,interacting],
   );
   const destinations = useMemo(() => getBattlefieldData(game).moves, [game]);
-  const queueCamera = (update) => {
+  const queueCamera = (update,orbit=false) => {
+    if(orbit){
+      clearTimeout(interactionTimer.current);
+      setInteracting(true);
+      interactionTimer.current=setTimeout(()=>setInteracting(false),180);
+    }
     cameraUpdates.current.push(update);
     if (cameraFrame.current !== null) return;
     cameraFrame.current = requestAnimationFrame(() => {
@@ -59,11 +80,22 @@ export function useBattlefield(game, onCell) {
     cancelAnimationFrame(cameraFrame.current);
     cameraFrame.current = null;
     cameraUpdates.current = [];
-    setCamera({ zoom: DEFAULT_ZOOM, pan: { x: 0, y: 0 } });
+    clearTimeout(interactionTimer.current);
+    setInteracting(false);
+    touches.current.clear();
+    pinch.current=null;
+    drag.current=null;
+    setDragging(false);
+    setCamera(initialCamera(game));
+  };
+  const endInteraction=()=>{
+    clearTimeout(interactionTimer.current);
+    setInteracting(false);
   };
   useEffect(
     () => () => {
       cancelAnimationFrame(cameraFrame.current);
+      clearTimeout(interactionTimer.current);
       cameraUpdates.current = [];
       cacheRef.current.clear();
     },
@@ -96,6 +128,16 @@ export function useBattlefield(game, onCell) {
       ? `${game.session}:${game.movement.id}`
       : null;
   }, [game.session]);
+  useEffect(()=>{
+    const target=focusTarget?.point;
+    if(!target||!onMap(game,target.x,target.y))return;
+    setHover(null);
+    queueCamera(current=>{
+      const cameraView={...baseView,ox:baseView.ox+current.pan.x,oy:baseView.oy+current.pan.y};
+      const point=project(cameraView,target.x+.5,target.y+.5);
+      return {...current,pan:{x:current.pan.x+size.width/2-point.x,y:current.pan.y+size.height/2-point.y}};
+    });
+  },[focusTarget]);
   useEffect(() => {
     const canvas = canvasRef.current,
       ctx = canvas.getContext('2d'),
@@ -152,7 +194,7 @@ export function useBattlefield(game, onCell) {
         now,
         reducedMotion,
         movements: movementRef.current,
-        cache: cacheRef.current,
+        cache: view.interactive?null:cacheRef.current,
         dpr,
       });
       if (effectRef.current.length || movementRef.current.length)
@@ -160,7 +202,7 @@ export function useBattlefield(game, onCell) {
     };
     frame = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(frame);
-  }, [game, size, camera, hover]);
+  }, [game, size, camera, hover,view]);
   const local = (e) => {
     const r = canvasRef.current.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
@@ -193,8 +235,10 @@ export function useBattlefield(game, onCell) {
   const zoom = (delta) =>
     queueCamera((c) => ({
       ...c,
-      zoom: Math.max(0.65, Math.min(2.8, c.zoom + delta)),
-    }));
+      zoom: clampZoom(c.zoom + delta),
+    }),true);
+  const rotate=delta=>queueCamera(c=>({...c,rotation:normalizeAngle(c.rotation+delta)}),true);
+  const tilt=value=>queueCamera(c=>({...c,tilt:clampTilt(value)}),true);
   const pan = (dx) => {
     setHover(null);
     queueCamera((c) => ({ ...c, pan: { x: c.pan.x + dx, y: c.pan.y } }));
@@ -213,7 +257,7 @@ export function useBattlefield(game, onCell) {
             0.65,
             Math.min(2.8, c.zoom * Math.exp(-delta * 0.006)),
           ),
-        }));
+        }),true);
       } else if (
         e.deltaMode === 0 ||
         e.shiftKey ||
@@ -240,18 +284,40 @@ export function useBattlefield(game, onCell) {
       (u.team === 'blue' || !game.fog[u.y][u.x]),
   );
   const pointerHandlers = {
+    onContextMenu:e=>e.preventDefault(),
     onPointerDown: (e) => {
-      if (!e.isPrimary || e.button !== 0) return;
+      if(e.pointerType==='touch'){
+        touches.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
+        e.currentTarget.setPointerCapture(e.pointerId);
+        if(touches.current.size>=2){
+          pinch.current={...touchGesture(touches.current),camera};
+          drag.current=null;
+          setDragging(true);setHover(null);
+          return;
+        }
+      }
+      if ((!e.isPrimary&&e.pointerType!=='touch') || ![0,2].includes(e.button)) return;
       drag.current = {
         id: e.pointerId,
         x: e.clientX,
         y: e.clientY,
         pan: camera.pan,
+        rotation:camera.rotation,
+        tilt:camera.tilt,
+        orbit:e.button===2||e.shiftKey,
         moved: false,
       };
       e.currentTarget.setPointerCapture(e.pointerId);
     },
     onPointerMove: (e) => {
+      if(touches.current.has(e.pointerId))touches.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(pinch.current&&touches.current.size>=2){
+        const current=touchGesture(touches.current),start=pinch.current;
+        queueCamera(c=>({...c,zoom:clampZoom(start.camera.zoom*current.distance/start.distance),
+          rotation:normalizeAngle(start.camera.rotation+normalizeAngle(current.angle-start.angle)),
+          pan:{x:start.camera.pan.x+current.x-start.x,y:start.camera.pan.y+current.y-start.y}}),true);
+        return;
+      }
       const d = drag.current;
       if (d) {
         if (d.id !== e.pointerId) return;
@@ -261,10 +327,9 @@ export function useBattlefield(game, onCell) {
         if (d.moved) {
           setDragging(true);
           setHover(null);
-          queueCamera((c) => ({
-            ...c,
-            pan: { x: d.pan.x + dx, y: d.pan.y + dy },
-          }));
+          queueCamera((c) => d.orbit
+            ? {...c,rotation:normalizeAngle(d.rotation+dx*.008),tilt:clampTilt(d.tilt+dy*.003)}
+            : {...c,pan:{x:d.pan.x+dx,y:d.pan.y+dy}},d.orbit);
           return;
         }
       }
@@ -279,18 +344,33 @@ export function useBattlefield(game, onCell) {
       );
     },
     onPointerUp: (e) => {
+      endInteraction();
+      touches.current.delete(e.pointerId);
+      if(pinch.current){
+        if(touches.current.size<2)pinch.current=null;
+        drag.current=null;
+        setDragging(false);
+        if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);
+        return;
+      }
       if (drag.current?.id !== e.pointerId) return;
-      if (!drag.current.moved) click(e);
+      if (!drag.current.moved&&!drag.current.orbit) click(e);
       drag.current = null;
       setDragging(false);
       if (e.currentTarget.hasPointerCapture(e.pointerId))
         e.currentTarget.releasePointerCapture(e.pointerId);
     },
-    onPointerCancel: () => {
+    onPointerCancel: (e) => {
+      endInteraction();
+      touches.current.delete(e.pointerId);
+      pinch.current=null;
       drag.current = null;
       setDragging(false);
     },
-    onLostPointerCapture: () => {
+    onLostPointerCapture: (e) => {
+      endInteraction();
+      touches.current.delete(e.pointerId);
+      pinch.current=null;
       drag.current = null;
       setDragging(false);
     },
@@ -305,7 +385,10 @@ export function useBattlefield(game, onCell) {
     dragging,
     pan,
     zoom,
+    rotate,
+    tilt,
     resetCamera,
+    destinations,
     pointerHandlers,
   };
 }

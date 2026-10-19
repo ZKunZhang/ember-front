@@ -1,3 +1,4 @@
+import { sourceToHex } from '../src/game/layout.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {initialGame} from '../src/game/reducer.js';
@@ -28,7 +29,9 @@ test('picking excludes hidden enemies and wrecks',()=>{
 
 test('nearby move tiles remain clickable while model centers win selection',()=>{
   const game=initialGame(),view=createView(game,1000,620);
-  const destination=project(view,16.5,3.5);
+  const cell=sourceToHex(game,{x:16,y:3});
+  assert.ok(game.terrain[cell.y][cell.x]>=0);
+  const destination=project(view,cell.x+.5,cell.y+.5);
   assert.equal(pickUnit(game,view,destination,true),null);
   const artillery=game.units.find(u=>u.id===4);
   const center=project(view,artillery.x+.5,artillery.y+.5,17*VEHICLE_SCALE);

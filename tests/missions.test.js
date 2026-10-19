@@ -1,3 +1,4 @@
+import { sourceToHex } from '../src/game/layout.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { initialGame, gameReducer } from '../src/game/reducer.js';
@@ -25,11 +26,11 @@ test('crossing does not preserve departed arrivals or allow elimination to bypas
 test('crossing victory can be undone and replayed through the reducer',()=>{
   const s=initialGame('silent-transit');
   const [a,b,c]=s.units.filter(u=>u.team==='blue');
-  Object.assign(a,{x:3,y:14});Object.assign(b,{x:4,y:14});Object.assign(c,{x:2,y:15});s.selectedId=c.id;
+  Object.assign(a,sourceToHex(s,{x:3,y:14}));Object.assign(b,sourceToHex(s,{x:4,y:14}));Object.assign(c,sourceToHex(s,{x:2,y:15}));s.selectedId=c.id;
   updateFog(s);
-  const won=gameReducer(s,{type:'CELL',x:3,y:15});assert.equal(won.winner,'blue');
+  const won=gameReducer(s,{type:'CELL',...sourceToHex(s,{x:3,y:15})});assert.equal(won.winner,'blue');
   const restored=gameReducer(won,{type:'UNDO'});assert.equal(restored.winner,null);assert.equal(breakthroughArrivals(restored).length,2);
-  assert.equal(gameReducer(restored,{type:'CELL',x:3,y:15}).winner,'blue');
+  assert.equal(gameReducer(restored,{type:'CELL',...sourceToHex(s,{x:3,y:15})}).winner,'blue');
 });
 
 test('route outposts wait until approached and stay alerted on later turns',()=>{
@@ -119,8 +120,8 @@ test('Ardennes final shot settles immediately and undo restores the unfinished d
   const s=initialGame('ardennes-watch');
   const target=s.units.find(u=>u.team==='red');
   for(const u of s.units.filter(u=>u.team==='red'))u.hp=0;
-  Object.assign(target,{x:16,y:3,hp:1});s.fog[3][16]=false;
-  const next=gameReducer(s,{type:'CELL',x:16,y:3});
+  Object.assign(target,sourceToHex(s,{x:16,y:3}),{hp:1});s.fog[target.y][target.x]=false;
+  const next=gameReducer(s,{type:'CELL',...sourceToHex(s,{x:16,y:3})});
   assert.equal(next.winner,'blue');assert.equal(next.turn,'blue');
   assert.equal(next.missionProgress.heldTurns,0);
   const restored=gameReducer(next,{type:'UNDO'});

@@ -1,3 +1,4 @@
+import { sourceToHex } from '../src/game/layout.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { initialGame, gameReducer } from '../src/game/reducer.js';
@@ -32,18 +33,18 @@ test('last movement ignores destroyed vehicles and starts exactly one enemy turn
 test('manual fire damages only the chosen target and completes the turn',()=>{
   const s=initialGame(),blue=s.units[0],reds=s.units.filter(u=>u.team==='red').slice(0,2);
   s.units=[blue,...reds];s.mission=null;blue.moved=true;s.mode='attack';
-  reds[0].x=16;reds[0].y=3;reds[0].hp=1;
-  reds[1].x=17;reds[1].y=2;
-  s.fog[3][16]=false;s.fog[2][17]=false;
-  const next=gameReducer(s,{type:'CELL',x:17,y:2});
+  Object.assign(reds[0],sourceToHex(s,{x:16,y:3}),{hp:1});
+  Object.assign(reds[1],sourceToHex(s,{x:17,y:2}));
+  for(const red of reds)s.fog[red.y][red.x]=false;
+  const next=gameReducer(s,{type:'CELL',...sourceToHex(s,{x:17,y:2})});
   assert.equal(next.units[1].hp,1);
   assert.ok(next.units[2].hp<reds[1].hp);assert.equal(next.turn,'red');
 });
 
 test('manual victory never starts enemy actions',()=>{
   const s=initialGame(),blue=s.units[0],red=s.units.find(u=>u.team==='red');
-  s.units=[blue,red];s.mission=null;blue.moved=true;s.mode='attack';red.x=16;red.y=3;red.hp=1;s.fog[3][16]=false;
-  const next=gameReducer(s,{type:'CELL',x:16,y:3});
+  s.units=[blue,red];s.mission=null;blue.moved=true;s.mode='attack';Object.assign(red,sourceToHex(s,{x:16,y:3}),{hp:1});s.fog[red.y][red.x]=false;
+  const next=gameReducer(s,{type:'CELL',...sourceToHex(s,{x:16,y:3})});
   assert.equal(next.winner,'blue');assert.equal(next.turn,'blue');assert.deepEqual(next.enemyQueue,[]);
 });
 
@@ -120,8 +121,8 @@ for(const mode of ['move','repair'])test(`out-of-range enemy click shows intel w
 
 for(const mode of ['move','repair'])test(`clicking enemies directly fires and inspects in ${mode} mode`,()=>{
   const s=initialGame(),red=s.units.find(u=>u.team==='red');
-  red.x=16;red.y=3;s.fog[3][16]=false;s.mode=mode;
-  const next=gameReducer(s,{type:'CELL',x:16,y:3});
+  Object.assign(red,sourceToHex(s,{x:16,y:3}));s.fog[red.y][red.x]=false;s.mode=mode;
+  const next=gameReducer(s,{type:'CELL',...sourceToHex(s,{x:16,y:3})});
   assert.equal(next.inspectedId,red.id);assert.equal(next.units[0].fired,true);
   assert.ok(next.units.find(u=>u.id===red.id).hp<red.hp);
   assert.equal(next.selectedId,1);
@@ -143,8 +144,8 @@ test('enemy intel is cleared on death or loss of visibility',()=>{
   const s=initialGame(),red=s.units.find(u=>u.team==='red');
   s.inspectedId=red.id;s.fog[red.y][red.x]=true;
   assert.equal(gameReducer(s,{type:'MODE',mode:'attack'}).inspectedId,null);
-  red.x=16;red.y=3;red.hp=1;s.fog[3][16]=false;s.mode='attack';
-  const next=gameReducer(s,{type:'CELL',x:16,y:3});
+  Object.assign(red,sourceToHex(s,{x:16,y:3}),{hp:1});s.fog[red.y][red.x]=false;s.mode='attack';
+  const next=gameReducer(s,{type:'CELL',...sourceToHex(s,{x:16,y:3})});
   assert.equal(next.inspectedId,null);
 });
 
@@ -207,8 +208,8 @@ test('reset clears undo history',()=>{
 
 test('undo restores a lethal shot, victory, fog and the firing allowance',()=>{
   const s=initialGame(),blue=s.units[0],red=s.units.find(u=>u.team==='red');
-  s.units=[blue,red];s.mission=null;red.x=16;red.y=3;red.hp=1;s.fog[3][16]=false;
-  const shot=gameReducer(s,{type:'CELL',x:16,y:3});
+  s.units=[blue,red];s.mission=null;Object.assign(red,sourceToHex(s,{x:16,y:3}),{hp:1});s.fog[red.y][red.x]=false;
+  const shot=gameReducer(s,{type:'CELL',...sourceToHex(s,{x:16,y:3})});
   assert.equal(shot.winner,'blue');
   const restored=gameReducer(shot,{type:'UNDO'});
   assert.deepEqual(restored.units,s.units);assert.deepEqual(restored.fog,s.fog);

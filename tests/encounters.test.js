@@ -2,7 +2,7 @@ import { hexCorners } from '../src/game/hex.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SCENARIOS, FORMATIONS } from '../src/game/scenarios.js';
-import { createState, updateFog, enemyAct, attackUnit, reachable, checkOutcome } from '../src/game/engine.js';
+import { createState, updateFog, enemyAct, attackUnit, moveUnit, reachable, checkOutcome } from '../src/game/engine.js';
 import { initialGame, gameReducer } from '../src/game/reducer.js';
 import { lineOfSight } from '../src/game/sight.js';
 import { UNIT_TYPES } from '../src/game/catalog.js';
@@ -46,19 +46,43 @@ test('a concealed patrol waits behind cover and only its local group wakes on co
   assert.notEqual(s.units[3].alerted,true);
 });
 
-test('movement stops on the first newly spotted enemy and undo restores fog and actions',()=>{
+test('movement reaches its destination after contact and undo restores fog and actions',()=>{
   const s={...initialGame(),...field([unit(1,'blue',0,4,{vision:2,move:6}),unit(2,'red',6,4)])};
   s.mission=null;s.selectedId=1;
   assert.ok(reachable(s,s.units[0]).has('5,4'));
   const next=gameReducer(s,{type:'CELL',x:5,y:4});
-  assert.equal(next.units[0].x,4);assert.equal(next.units[0].fired,false);
+  assert.equal(next.units[0].x,5);assert.equal(next.units[0].fired,false);
+  assert.equal(next.units[0].moved,true);
+  assert.deepEqual(next.movement.path,[{x:0,y:4},...reachable(s,s.units[0]).get('5,4')]);
   assert.equal(next.turn,'blue','contact must leave time to react even when the last vehicle has moved');
   assert.equal(next.fog[4][6],false);assert.match(next.notice.message,/发现 1 辆敌军/);
   const undone=gameReducer(next,{type:'UNDO'});
   assert.deepEqual(undone.units,s.units);assert.deepEqual(undone.fog,s.fog);
+  assert.equal(undone.turn,'blue');assert.equal(undone.movement,null);
 });
 
-test('crossing operations vary force sizes, survival requirements and starting corners',()=>{
+test('contacts accumulate once per enemy along the full route even after leaving sight',()=>{
+  const s=field([unit(1,'blue',0,4,{vision:1,move:6}),unit(2,'red',2,3),unit(3,'red',5,3),unit(4,'red',0,5)]);
+  const result=moveUnit(s,1,6,4);
+  assert.equal(result.ok,true);assert.equal(result.encountered,2);
+  assert.equal(result.moved,6);assert.deepEqual(result.path.at(-1),{x:6,y:4});
+  assert.equal(s.fog[3][2],true,'a contact seen only along the route still counts');
+  assert.match(result.message,/发现 2 辆敌军/);assert.match(result.message,/移动完成/);
+  assert.doesNotMatch(result.message,/暂停|停止/);
+});
+
+test('an enemy occupying the planned route stops movement before its tile after contact',()=>{
+  const s=field([unit(1,'blue',0,4,{vision:1,move:6}),unit(2,'red',2,3),unit(3,'red',4,4)]);
+  assert.equal(s.fog[4][4],true);
+  const result=moveUnit(s,1,6,4);
+  assert.equal(result.ok,true);assert.equal(result.encountered,2);
+  assert.deepEqual(result.path,[{x:1,y:4},{x:2,y:4},{x:3,y:4}]);
+  assert.deepEqual({x:s.units[0].x,y:s.units[0].y},{x:3,y:4});
+  assert.equal(new Set(s.units.map(u=>`${u.x},${u.y}`)).size,s.units.length);
+  assert.match(result.message,/占据路线/);assert.doesNotMatch(result.message,/移动完成|暂停/);
+});
+
+test('crossing operations vary force sizes, survival requirements and world starting corners',()=>{
   const missions=SCENARIOS.filter(s=>s.mission?.kind==='breakthrough');
   assert.ok(missions.length>=10);
   assert.equal(new Set(missions.map(s=>s.approach)).size,4);
@@ -80,10 +104,11 @@ test('mountain tiles share elevated edges and meet walkable terrain at ground le
   for(let y=1;y<=3;y++)for(let x=1;x<=3;x++)terrain[y][x]=1;
   const a=mountainMesh(terrain,1,2).flat(),b=mountainMesh(terrain,2,2).flat();
   const [start,end]=hexCorners(1,2);
-  for(const [x,y] of [start,[(start[0]+end[0])/2,(start[1]+end[1])/2],end]) {
-    const p=a.find(p=>p[0]===x&&p[1]===y);
+  for(let i=0;i<=5;i++) {
+    const x=start[0]+(end[0]-start[0])*i/5,y=start[1]+(end[1]-start[1])*i/5;
+    const p=a.find(p=>Math.abs(p[0]-x)<1e-8&&Math.abs(p[1]-y)<1e-8);
     assert.ok(p&&p[2]>0);
-    assert.ok(b.some(q=>q.every((value,i)=>value===p[i])));
+    assert.ok(b.some(q=>q.every((value,i)=>Math.abs(value-p[i])<1e-8)));
   }
   assert.ok(mountainHeight(terrain,2,2.5)>20);
   assert.equal(mountainHeight(terrain,1,2.5),0);

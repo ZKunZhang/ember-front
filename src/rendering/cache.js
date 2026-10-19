@@ -1,6 +1,7 @@
 import { createPainter } from './primitives.js';
 import { createTerrainRenderer } from './terrain.js';
 import { hexCorners } from '../game/hex.js';
+import { tableBounds } from './projection.js';
 
 // Bound backing-store memory on Retina displays without changing CSS coordinates.
 export function renderPixelRatio(width, height, deviceRatio = 1, budget = 4_000_000) {
@@ -19,13 +20,17 @@ export function createTerrainCache(makeCanvas = () => document.createElement('ca
   return {
     clear,
     prepare(state, view, dpr) {
-      const next = `${view.scale}:${dpr}:${state.cols}:${state.rows}:${JSON.stringify(state.terrain)}:${JSON.stringify(state.fog)}`;
+      const next = `${view.scale}:${view.rotation??0}:${view.tilt??1}:${view.facing??1}:${view.lateral??1}:${view.advance}:${Boolean(view.interactive)}:${dpr}:${state.cols}:${state.rows}:${JSON.stringify(state.terrain)}:${JSON.stringify(state.fog)}`;
       if (next !== key) { clear();key = next; }
     },
     ground(ctx, view, state, draw, dpr) {
       if (!ground) {
         const origin = { ...view, ox: 0, oy: 0 }, { p } = createPainter(ctx, origin);
         let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+        for(const [x,y] of tableBounds(state).corners){
+          const point=p(x,y,-26);
+          left=Math.min(left,point.x);right=Math.max(right,point.x);top=Math.min(top,point.y);bottom=Math.max(bottom,point.y);
+        }
         for (let y = 0; y < state.rows; y++) for (let x = 0; x < state.cols; x++) {
           if (state.terrain[y][x] < 0) continue;
           for (const [a, b] of hexCorners(x,y)) {

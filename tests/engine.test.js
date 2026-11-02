@@ -17,8 +17,8 @@ function terrainRoute(s,from,to) {
   }return null;
 }
 
-test('six ground vehicle types and all scenario forces have legal unique deployments',()=>{
-  assert.deepEqual(Object.keys(UNIT_TYPES),['scout','tank','heavyTank','artillery','rocket','engineer']);
+test('nine ground unit types and all scenario forces have legal unique deployments',()=>{
+  assert.deepEqual(Object.keys(UNIT_TYPES),['scout','tank','heavyTank','artillery','rocket','engineer','cannon','howitzer','gunHowitzer']);
   for(const meta of SCENARIOS){const s=createState(meta.id,'hard'),blue=s.units.filter(u=>u.team==='blue'),red=s.units.filter(u=>u.team==='red');
     assert.equal(blue.length,meta.allyCount);assert.equal(red.length,meta.enemyCount);assert.ok(new Set(blue.map(u=>u.type)).size>=4);assert.ok(blue.some(u=>u.type==='engineer'));
     assert.equal(new Set(s.units.map(u=>`${u.x},${u.y}`)).size,s.units.length);

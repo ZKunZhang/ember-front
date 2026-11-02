@@ -67,7 +67,7 @@ export default function CommandPanel({ game, onSelect, onLocate }) {
   const defending=game.mission?.kind==='defend';
   const locked=game.turn!=='blue'||Boolean(game.winner);
   const living=game.units.filter(unit=>unit.team==='blue'&&unit.hp>0);
-  const roleHints={scout:'绕到林缘观察，让后方火炮获得共享视野。',tank:'守住进场路，掩护侦察车和火炮。',heavyTank:'适合守住入口，留意敌军绕行路线。',artillery:'保持在后方，利用共享视野越过山林射击。',rocket:'保持远距离支援，近处敌车处于射击盲区。',engineer:'随队维修相邻友军，维修会占用开火机会。'};
+  const roleHints={scout:'绕到林缘观察，让后方火炮获得共享视野。',tank:'守住进场路，掩护侦察车和火炮。',heavyTank:'适合守住入口，留意敌军绕行路线。',artillery:'保持在后方，利用共享视野越过山林射击。',rocket:'保持远距离支援，近处敌车处于射击盲区。',engineer:'随队维修相邻友军，维修会占用开火机会。',cannon:'沿开阔道路建立直射炮线，山林会挡住火力。',howitzer:'依靠侦察越岭曲射，保持至少 3 格距离。',gunHowitzer:'保持至少 2 格距离，以重火力越岭支援前队。'};
 
   return (
     <aside
@@ -107,11 +107,11 @@ export default function CommandPanel({ game, onSelect, onLocate }) {
             <>
               <UnitDetails unit={inspected} hostile={Boolean(enemy)} />
               <p className="unit-terrain">{terrainLabel(game.terrain[inspected.y][inspected.x])} · 每格消耗 {terrainCost(game.terrain[inspected.y][inspected.x])} 移动点</p>
-              {defending&&<>
+              <>
                 {!enemy&&<div className="unit-readiness" aria-label="本车行动机会"><span className={!locked&&!inspected.moved?'available':''}>{game.winner?'行动结束':locked?'等待我方回合':inspected.moved?'移动已使用':'可移动 1 次'}</span><span className={!locked&&!inspected.fired?'available':''}>{locked?'当前不可行动':inspected.fired?`${inspected.repair>0?'开火 / 维修':'开火'}已使用`:`可${inspected.repair>0?'开火 / 维修':'开火'} 1 次`}</span></div>}
                 <p className="defense-unit-role">{enemy?'点击战场中的敌车会尝试开火；查看情报不代表已造成伤害。':roleHints[inspected.type]}</p>
                 <button className="locate-unit" onClick={()=>onLocate(inspected)}>⌖ 定位{enemy?'敌军':'本车'}</button>
-              </>}
+              </>
             </>
           ) : (
             <div className="empty-selection">
@@ -120,14 +120,14 @@ export default function CommandPanel({ game, onSelect, onLocate }) {
           )}
         </section>
 
-        {defending&&<details className="unit-roster">
+        <details className="unit-roster">
           <summary>我方编队 <span>{living.length} 辆 · 快捷选车</span></summary>
           <div className="unit-roster-list" role="group" aria-label="我方车辆列表">
             {living.map(unit=><button key={unit.id} disabled={locked} aria-label={`选择我方${String(unit.id).padStart(2,'0')}号${unit.name}`} aria-pressed={unit.id===game.selectedId&&!enemy} onClick={()=>onSelect(unit.id)}>
               <UnitIcon type={unit.type}/><span><b>{String(unit.id).padStart(2,'0')} {unit.name}</b><small>{unit.hp}/{unit.maxHp} 生命 · {locked?(game.winner?'行动结束':'等待我方回合'):`${unit.moved?'已移动':'可移动'} · ${unit.fired?'已行动':'可开火'}`}</small></span>
             </button>)}
           </div>
-        </details>}
+        </details>
 
         <details className="log-panel">
           <summary className="section-title">

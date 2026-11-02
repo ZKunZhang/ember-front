@@ -172,8 +172,8 @@ h1, h2, h3 { line-height: 1.35; }
 .legend { display: flex; flex-wrap: wrap; gap: 9px 15px; font-size: 9px; }
 .legend > span { display: flex; gap: 5px; align-items: center; white-space: nowrap; }
 .swatch { display: inline-block; width: 6px; height: 6px; border-radius: 1px; vertical-align: middle; flex-shrink: 0; }
-.swatch.move { background: #a8dbe622; border: 1px solid #a8dbe6; width: 8px; height: 8px; }
-.swatch.attack { background: #becec322; border: 1px dashed #becec3; width: 8px; height: 8px; }
+.swatch.move { background: #a8dbe622; border: 2px solid #2468c9; width: 8px; height: 8px; }
+.swatch.attack { background: #ffc69f22; border: 2px dashed #e68b36; width: 8px; height: 8px; }
 .swatch.road { background: #8aa794; }.swatch.fog { background: #394b3f; border: 1px solid #71947d; }
 .route-brief { display: flex; flex-wrap: wrap; gap: 9px 20px; padding: 17px 3px; font-size: 10px; color: #91ac9a; }
 .route-brief > span { color: var(--accent); }

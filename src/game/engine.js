@@ -4,6 +4,7 @@ import { createScenario } from './scenarios.js';
 import { DEFAULT_DIFFICULTY, applyEnemyDifficulty, getDifficulty } from './difficulty.js';
 import { canSee, lineOfSight } from './sight.js';
 import { HEX_DIRECTIONS, hexDistance } from './hex.js';
+import { isOperationMission, syncOperation } from './operations.js';
 
 export const distance = hexDistance;
 export const keyOf = (x, y) => `${x},${y}`;
@@ -19,7 +20,8 @@ export function createState(scenarioId, difficultyId = DEFAULT_DIFFICULTY, forma
     const spec = deployment.team === 'red'
       ? applyEnemyDifficulty(UNIT_TYPES[deployment.type], scenario.difficultyId)
       : UNIT_TYPES[deployment.type];
-    return { ...spec, ...deployment, id: i + 1, hp: spec.maxHp, moved: false, fired: false };
+    const ratio = Number.isFinite(deployment.initialHpRatio) ? deployment.initialHpRatio : 1;
+    return { ...spec, ...deployment, id: i + 1, hp: Math.min(spec.maxHp, Math.max(1, Math.round(spec.maxHp * ratio))), moved: false, fired: false };
   });
   // The cursor is part of game state, so an undo also restores future AI choices.
   const aiSeed = ((Date.now() ^ Math.floor(Math.random() * 0x100000000)) >>> 0) || 1;
@@ -106,10 +108,12 @@ export function moveUnit(s,id,x,y) {
   for (const p of path) {
     if (unitAt(s,p.x,p.y)) break;
     Object.assign(u,p); actual.push(p);
+    if (isOperationMission(s.mission)) checkOutcome(s);
     updateFog(s);
     for (const target of s.units) {
       if (target.team==='red'&&target.hp>0&&!s.fog[target.y][target.x]&&!known.has(target.id)) discovered.add(target.id);
     }
+    if (s.winner) break;
   }
   u.moved = true; updateFog(s); updateMission(s); checkOutcome(s);
   const encountered=discovered.size;
@@ -217,12 +221,12 @@ export function enemyAct(s,id) {
     alertPatrol(s,u);
   }
   const targetsAt = point => enemies.filter(t=>inFireRange(s,{...u,...point},t));
-  if (s.mission?.kind==='defend' && !u.moved) {
+  if (['defend','rearguard','control','relief'].includes(s.mission?.kind) && !u.moved) {
     const routes=reachable(s,u,Infinity,false);
-    const approaches=s.mission.points.filter(p=>!unitAt(s,p.x,p.y)).map(p=>routes.get(keyOf(p.x,p.y))).filter(Boolean);
+    const approaches=(s.mission.points??[s.mission.point]).filter(p=>!unitAt(s,p.x,p.y)).map(p=>routes.get(keyOf(p.x,p.y))).filter(Boolean);
     const approach=choose(s,approaches,route=>-routeCost(s,route));
     if (approach) { path=advance(s,u,approach);u.moved=true;updateFog(s); }
-    if (s.winner) return {ok:true,path,moved:path.length>0,hidden:s.fog[u.y][u.x],message:'敌军突破机场防线'};
+    if (s.winner) return {ok:true,path,moved:path.length>0,hidden:s.fog[u.y][u.x],message:s.mission?.kind==='defend'?'敌军突破机场防线':'敌军推进至任务区域'};
   }
 
   if (!u.fired && u.repair) {
@@ -235,7 +239,7 @@ export function enemyAct(s,id) {
         path = approach;
         u.moved = true;
         updateFog(s);
-        if (s.winner) return {ok:true,path,moved:path.length>0,hidden:s.fog[u.y][u.x],message:'敌军突破机场防线'};
+        if (s.winner) return {ok:true,path,moved:path.length>0,hidden:s.fog[u.y][u.x],message:s.mission?.kind==='defend'?'敌军突破机场防线':'敌军推进至任务区域'};
         damaged = distance(distant,u)===1 ? distant : repairTarget(s,u,true);
       }
     }
@@ -249,7 +253,7 @@ export function enemyAct(s,id) {
     const escape = retreat(s,u,enemies);
     if (escape) { path=escape;u.moved=true; }
   }
-  if (s.winner) { updateFog(s); return {ok:true,path,moved:path.length>0,hidden:s.fog[u.y][u.x],message:'敌军突破机场防线'}; }
+  if (s.winner) { updateFog(s); return {ok:true,path,moved:path.length>0,hidden:s.fog[u.y][u.x],message:s.mission?.kind==='defend'?'敌军突破机场防线':'敌军推进至任务区域'}; }
   if (!targetsAt(u).length && !u.moved) {
     const routes = reachable(s,u,Infinity,false);
     const firingPaths = [];
@@ -267,7 +271,7 @@ export function enemyAct(s,id) {
     u.moved = true;
   }
   updateFog(s);
-  if (s.winner) return {ok:true,path,moved:path.length>0,hidden:s.fog[u.y][u.x],message:'敌军突破机场防线'};
+  if (s.winner) return {ok:true,path,moved:path.length>0,hidden:s.fog[u.y][u.x],message:s.mission?.kind==='defend'?'敌军突破机场防线':'敌军推进至任务区域'};
   const hidden = s.fog[u.y][u.x], target = targetFor(s,u,targetsAt(u),mode);
   if (target && !u.fired) {
     const damage = damageFor(u,target);
@@ -280,6 +284,7 @@ export function enemyAct(s,id) {
 }
 export function checkOutcome(s) {
   if (s.winner) return s.winner;
+  if (isOperationMission(s.mission)) { syncOperation(s); return s.winner; }
   const blue = s.units.filter(u=>u.team==='blue'&&u.hp>0);
   if (!blue.length) { s.winner='red'; return s.winner; }
   const mission = s.mission;
@@ -312,6 +317,7 @@ export function updateMission(s,endEnemyTurn=false) {
   const mission=s.mission;
   const progress=s.missionProgress ?? (s.missionProgress={captured:[],heldTurns:0,defendedTurns:0});
   if (!mission || s.winner) return progress;
+  if (isOperationMission(mission)) return syncOperation(s,endEnemyTurn);
   const blue=s.units.filter(u=>u.team==='blue'&&u.hp>0);
   if (mission.kind==='defend' && endEnemyTurn) {
     checkOutcome(s);

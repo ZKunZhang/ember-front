@@ -1,14 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { HEX_DIRECTIONS } from '../src/game/hex.js';
-import { worldToGround } from '../src/rendering/projection.js';
+import { worldToGround, project } from '../src/rendering/projection.js';
 import { drawVehicleModel } from '../src/rendering/vehicles.js';
 import { createTerrainRenderer } from '../src/rendering/terrain.js';
+import { UNIT_TYPES } from '../src/game/catalog.js';
+import { drawCombat, IMPACT_DELAY } from '../src/rendering/combat.js';
 
 test('vehicle bodies retain perpendicular sides in the same ground plane as the tabletop',()=>{
   const gradient={addColorStop(){}};
   const ctx=new Proxy({}, {get:(_,key)=>key==='createLinearGradient'?()=>gradient:()=>{}});
-  for(const type of ['scout','tank','heavyTank','artillery','rocket','engineer']) {
+  for(const type of Object.keys(UNIT_TYPES)) {
     for(const team of ['blue','red'])for(const [x,y] of HEX_DIRECTIONS){
       const plates=[];
       const painter={ctx,scale:1,p:(x,y)=>worldToGround({x,y}),line(){},polygon:points=>plates.push(points)};
@@ -20,6 +22,20 @@ test('vehicle bodies retain perpendicular sides in the same ground plane as the 
       const cosine=(a.x*b.x+a.y*b.y)/(Math.hypot(a.x,a.y)*Math.hypot(b.x,b.y));
       assert.ok(Math.abs(cosine)<1e-10,`${type}/${team}/${x},${y}: body was sheared`);
     }
+  }
+});
+
+test('projectile trajectories follow each catalog weapon firing mode',()=>{
+  const view={cols:12,rows:10,scale:1,tw:46,th:28,ox:0,oy:0};
+  for(const type of Object.keys(UNIT_TYPES)) {
+    const arcs=[];
+    const ctx=new Proxy({arc(x,y){arcs.push({x,y});}}, {get:(object,key)=>object[key]??(()=>{})});
+    const effect={id:1,started:0,amount:-3,x:7,y:4,source:{type,x:2,y:4}};
+    drawCombat(ctx,view,[effect],IMPACT_DELAY/2);
+    const source=project(view,2.5,4.5,19),target=project(view,7.5,4.5,14);
+    const projectile=arcs.at(-1);
+    assert.ok(Math.abs(projectile.x-(source.x+target.x)/2)<1e-10,`${type}: horizontal interpolation`);
+    assert.ok(Math.abs(projectile.y-((source.y+target.y)/2-(UNIT_TYPES[type].indirect?36:0)))<1e-10,`${type}: catalog firing mode`);
   }
 });
 

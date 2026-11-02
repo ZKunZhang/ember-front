@@ -1,4 +1,4 @@
-import { sourceToHex } from '../src/game/layout.js';
+import { authoredToHex, sourceToHex } from '../src/game/layout.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SCENARIOS, FORMATIONS, createScenario } from '../src/game/scenarios.js';
@@ -18,9 +18,8 @@ function distances(s, start, allowed = value => [0,3,5,6].includes(value)) {
   return seen;
 }
 
-test('four terrain missions extend the existing roster to 27 maps',()=>{
-  assert.equal(SCENARIOS.length,27);
-  assert.deepEqual(SCENARIOS.slice(-4).map(s=>s.id),ids);
+test('four terrain missions remain available in the expanded campaign',()=>{
+  assert.deepEqual(SCENARIOS.filter(s=>ids.includes(s.id)).map(s=>s.id),ids);
   for(const id of ids) for(const difficulty of Object.keys(DIFFICULTIES)) for(const formation of Object.keys(FORMATIONS)) {
     const s=createScenario(id,difficulty,formation), blue=s.deployments.filter(u=>u.team==='blue');
     assert.equal(s.deployments.length,s.allyCount+s.enemyCount);
@@ -38,12 +37,13 @@ test('the sole bridge is the only connection across a full-width deep river',()=
   const s=createScenario('last-bridge','hard'), [near,far]=s.mission.points;
   const bridge=[];
   for(let y=8;y<=10;y++) for(let x=1;x<=20;x++) {
-    const p=sourceToHex(s,{x,y}), value=s.terrain[p.y][p.x];
+    const p=authoredToHex(s,{x,y}), value=s.terrain[p.y][p.x];
     if(value<0)continue;
-    if(value===3) bridge.push(p);
+    if(value===3) { const a={x:2*x+y%2,y:2*y}; for(let dy=0;dy<2;dy++) for(let dx=0;dx<2;dx++) bridge.push(sourceToHex(s,{x:a.x+dx,y:a.y+dy})); }
     else assert.equal(value,4);
   }
-  assert.deepEqual(bridge,[{x:11,y:8},{x:11,y:9},{x:11,y:10}].map(p=>sourceToHex(s,p)));
+  assert.equal(bridge.length,12);
+  assert.ok(bridge.every(p=>s.terrain[p.y][p.x]===3));
   assert.ok(distances(s,near).has(key(far)));
   for(const p of bridge) s.terrain[p.y][p.x]=4;
   assert.ok(!distances(s,near).has(key(far)));
@@ -76,7 +76,7 @@ test('a contiguous bog offers a shorter muddy route and a usable dry detour',()=
 test('airport guards deploy around the runway while attackers have a connected advance',()=>{
   const s=createScenario('airfield-defense','hard');
   assert.equal(s.mission.kind,'defend'); assert.equal(s.mission.turns,5);
-  assert.equal(s.mission.points.length,6);
+  assert.equal(s.mission.points.length,24);
   const protectedCells=new Set(s.mission.points.map(key));
   for(const u of s.deployments.filter(u=>u.team==='red')) {
     assert.ok(!protectedCells.has(key(u)));
@@ -86,8 +86,8 @@ test('airport guards deploy around the runway while attackers have a connected a
   assert.ok(s.deployments.filter(u=>u.team==='blue').every(u=>s.mission.points.some(p=>hexDistance(u,p)<=2)));
   const feature=s.features[0];
   assert.equal(feature.type,'airfield'); assert.equal(feature.label,'前线机场');
-  assert.deepEqual(feature.runway,{from:sourceToHex(s,{x:15,y:6}),to:sourceToHex(s,{x:15,y:11})});
-  assert.deepEqual(feature.hangars,[{x:16,y:7},{x:16,y:10}].map(p=>sourceToHex(s,p)));
+  assert.deepEqual(feature.runway,{from:authoredToHex(s,{x:15,y:6}),to:authoredToHex(s,{x:15,y:11})});
+  assert.deepEqual(feature.hangars,[{x:16,y:7},{x:16,y:10}].map(p=>authoredToHex(s,p)));
   assert.ok(s.story.intro.length>20); assert.equal(s.story.history,undefined);
 });
 

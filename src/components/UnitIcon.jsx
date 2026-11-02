@@ -4,6 +4,9 @@ export default function UnitIcon({ type, className = '', team = 'blue' }) {
     : { hull: '#78bfce', cream: '#fff0d1', glass: '#548caa', edge: '#669cab' };
   const heavy = type === 'heavyTank';
   const artillery = type === 'artillery';
+  const cannon = type === 'cannon';
+  const howitzer = type === 'howitzer';
+  const gunHowitzer = type === 'gunHowitzer';
   const rocket = type === 'rocket';
   const engineer = type === 'engineer';
   return <svg className={`unit-icon ${className} ${team === 'red' ? 'hostile-icon' : ''}`} viewBox="0 0 80 48" fill="none" style={{color:paint.hull}} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -40,6 +43,26 @@ export default function UnitIcon({ type, className = '', team = 'blue' }) {
         <path d="M65 13v10l-4 3" stroke="#efbf54" strokeWidth="1.8" />
         <path d="m58 29 12-3 2 13-13 1z" fill="#efbf54" stroke="#fff0bd" />
         <path d="m59 39 13-1M14 25h7" stroke="#fff0bd" strokeWidth="1.5" />
+      </> : cannon ? <>
+        <path d="M16 24h27v5H16z" fill="#78949a" />
+        <path d="M39 19h5v10h-5z" fill={paint.cream} />
+        <path d="m28 23 46-1" stroke="currentColor" strokeWidth="3" />
+        <path d="M25 23h17" stroke="currentColor" strokeWidth="5" />
+        <path d="M73 20v4m-56 5-8 10" stroke="currentColor" strokeWidth="2.5" />
+      </> : howitzer ? <>
+        <path d="M14 18h29v11H14z" fill="#78949a" />
+        <path d="M14 17h5v12h-5zm24 0h5v12h-5z" fill="currentColor" />
+        <path d="m29 24 20-18" stroke="currentColor" strokeWidth="5" />
+        <path d="m28 25 10-9" stroke="currentColor" strokeWidth="7" />
+        <path d="m47 4 5 5m-35 20-8 10" stroke="currentColor" strokeWidth="3" />
+      </> : gunHowitzer ? <>
+        <path d="m16 16 29-3 10 10-3 6H14z" fill={paint.cream} />
+        <path d="m44 16 11 7-3 6H35z" fill="currentColor" />
+        <path d="m45 21 28-12" stroke="currentColor" strokeWidth="4" />
+        <path d="m43 22 11-5" stroke="currentColor" strokeWidth="6" />
+        <path d="m71 7 3 5" stroke="currentColor" strokeWidth="4" />
+        <path d="M23 13h13v-3H23z" fill="currentColor" />
+        <path d="m20 20 16-1" stroke={paint.edge} strokeWidth="1.4" />
       </> : artillery ? <>
         <path d="M13 18h29v10H13z" fill="#78949a" />
         <path d="M13 17h5v11h-5zm25 0h5v11h-5z" fill="currentColor" />
@@ -61,7 +84,7 @@ export default function UnitIcon({ type, className = '', team = 'blue' }) {
       </>}
       <path d="M15 29h40" stroke={paint.cream} opacity=".85" />
     </>}
-    <path d={type === 'scout' ? 'm25 16 18 1 3 3H23z' : rocket ? 'm14 14 26-7 1 3-26 7z' : engineer ? 'M18 15h18v3H18z' : artillery ? 'M14 17h4v9h-2z' : heavy ? 'm21 14 24-2 5 3-30 3z' : 'm28 17 16-1 4 3-22 2z'} fill={paint.cream} opacity=".8" />
+    <path d={type === 'scout' ? 'm25 16 18 1 3 3H23z' : rocket ? 'm14 14 26-7 1 3-26 7z' : engineer ? 'M18 15h18v3H18z' : artillery || howitzer ? 'M14 17h4v9h-2z' : cannon ? 'M39 19h5v3h-5z' : gunHowitzer ? 'm18 16 26-3 3 3-29 3z' : heavy ? 'm21 14 24-2 5 3-30 3z' : 'm28 17 16-1 4 3-22 2z'} fill={paint.cream} opacity=".8" />
     <path d="M13 27h5" stroke="#e4c98f" strokeWidth="2" />
   </svg>;
 }

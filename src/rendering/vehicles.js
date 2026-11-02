@@ -204,6 +204,47 @@ export function drawVehicleModel(painter, unit, motion = null) {
     gun([.68,0,21.4],[.74,0,21.5],5.4);
     seam([-.17,-.17,25],[-.2,-.18,29],colors.shade,.75);
     headlights(.43,.27,10);
+  } else if (['cannon','howitzer','gunHowitzer'].includes(unit.type)) {
+    const cannon=unit.type==='cannon',enclosed=unit.type==='gunHowitzer';
+    tracks(enclosed?1.02:.96,enclosed?.8:.73);
+    armor(-.47,-.285,.94,.57,4,6,.035,colors.hull,.045);
+    vents(.28,-.2,10.2,.13,.22);
+    if(enclosed) {
+      // Enclosed armored casemate, taller and wider than an open field gun.
+      armor(-.36,-.265,.63,.53,10,12,.035,colors.roof,.065);
+      armor(.15,-.13,.17,.26,15,7,.02,colors.hull,.025);
+      hatch(-.18,-.08,22,.065);mark(-.19,.065,22.2,.15);
+      stowage(-.4,-.19,10,.1,.35);
+      gun([.24,0,19],[.8,0,27],3.5);
+      gun([.25,0,19.1],[.43,0,21.7],5);
+      gun([.74,0,26.1],[.8,0,27],4.4);
+    } else {
+      // Exposed breech and a dark floor distinguish both open gun mounts.
+      armor(-.4,-.25,.53,.5,10,2,.018,colors.side,.025);
+      plate([[-.35,-.19,12.3],[.08,-.19,12.3],[.08,.19,12.3],[-.35,.19,12.3]],'#6b8a92');
+      if(cannon) {
+        // Low forward shield and a very long, almost level direct-fire barrel.
+        armor(.025,-.245,.075,.49,11,5,.009,colors.roof,.014);
+        armor(-.17,-.1,.3,.2,12,3,.018,colors.slope,.025);
+        gun([-.05,0,15],[.81,0,16.2],2.5);
+        gun([-.08,0,15],[.18,0,15.4],3.9);
+        gun([.75,0,16.1],[.81,0,16.2],3.3);
+        mark(.045,.065,16.2,.04);
+      } else {
+        // Short, thick, steeply elevated howitzer in an open compartment.
+        for(const b of [-.255,.205])armor(-.41,b,.47,.05,11,8,.008,colors.roof,.012);
+        armor(-.41,-.21,.055,.42,11,6,.008,colors.slope,.012);
+        armor(-.15,-.11,.3,.22,12,5,.02,colors.slope,.025);
+        for(const b of [-.14,.14])beam([-.15,b,15],[.19,b,23],.045,2.1,colors.roof);
+        gun([.02,0,17],[.48,0,30],4.2);
+        gun([.01,0,17],[.19,0,22],5.4);
+        gun([.43,0,28.6],[.48,0,30],5);
+        mark(-.3,.207,19.2,.15);
+      }
+      for(const b of [-.23,.23])beam([-.39,b,7],[-.54,b,2.2],.065,2.3,colors.slope);
+      stowage(-.36,-.16,12.5,.12,.1);
+    }
+    headlights(.42,.21,8);
   } else if (unit.type === 'artillery') {
     tracks(1,.73);
     armor(-.49,-.285,.98,.57,4,6,.035,colors.hull,.045);

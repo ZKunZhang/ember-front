@@ -1,4 +1,5 @@
 import { project } from './projection.js';
+import { UNIT_TYPES } from '../game/catalog.js';
 
 export const EFFECT_DURATION = 1100;
 export const IMPACT_DELAY = 170;
@@ -45,7 +46,7 @@ export function drawCombat(ctx,view,effects,now,reducedMotion=false) {
     ctx.save();
     if(!healing&&!reducedMotion&&effect.source&&age<IMPACT_DELAY){
       const source=project(view,effect.source.x+.5,effect.source.y+.5,19);
-      const t=clamp(age/IMPACT_DELAY),arc=['artillery','rocket'].includes(effect.source.type)?Math.sin(t*Math.PI)*36*scale:0;
+      const t=clamp(age/IMPACT_DELAY),arc=UNIT_TYPES[effect.source.type]?.indirect?Math.sin(t*Math.PI)*36*scale:0;
       const x=source.x+(target.x-source.x)*t,y=source.y+(target.y-source.y)*t-arc;
       ctx.shadowColor='#ffbb59';ctx.shadowBlur=12*scale;
       orb(source.x,source.y,(3+Math.sin(t*Math.PI)*8)*scale,'#fff3c7',1-t);

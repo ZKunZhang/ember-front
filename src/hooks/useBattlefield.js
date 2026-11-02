@@ -17,7 +17,7 @@ import { EFFECT_DURATION } from '../rendering/combat.js';
 import { onMap } from '../game/engine.js';
 
 const initialCamera=game=>({zoom:DEFAULT_ZOOM,pan:{x:0,y:0},rotation:initialRotation(game),tilt:1});
-const clampZoom=zoom=>Math.max(.65,Math.min(2.8,zoom));
+const clampZoom=zoom=>Math.max(.65,Math.min(5.6,zoom));
 const clampTilt=tilt=>Math.max(.65,Math.min(1.35,tilt));
 const normalizeAngle=angle=>Math.atan2(Math.sin(angle),Math.cos(angle));
 const touchGesture=points=>{
@@ -25,7 +25,7 @@ const touchGesture=points=>{
   return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),angle:Math.atan2(b.y-a.y,b.x-a.x)};
 };
 
-export function useBattlefield(game, onCell, focusTarget) {
+export function useBattlefield(game, onCell, focusTarget,showGrid=false) {
   const canvasRef = useRef(null),
     drag = useRef(null),
     effectRef = useRef([]),
@@ -128,8 +128,7 @@ export function useBattlefield(game, onCell, focusTarget) {
       ? `${game.session}:${game.movement.id}`
       : null;
   }, [game.session]);
-  useEffect(()=>{
-    const target=focusTarget?.point;
+  const focusOn=target=>{
     if(!target||!onMap(game,target.x,target.y))return;
     setHover(null);
     queueCamera(current=>{
@@ -137,7 +136,8 @@ export function useBattlefield(game, onCell, focusTarget) {
       const point=project(cameraView,target.x+.5,target.y+.5);
       return {...current,pan:{x:current.pan.x+size.width/2-point.x,y:current.pan.y+size.height/2-point.y}};
     });
-  },[focusTarget]);
+  };
+  useEffect(()=>{focusOn(focusTarget?.point);},[focusTarget]);
   useEffect(() => {
     const canvas = canvasRef.current,
       ctx = canvas.getContext('2d'),
@@ -196,13 +196,14 @@ export function useBattlefield(game, onCell, focusTarget) {
         movements: movementRef.current,
         cache: view.interactive?null:cacheRef.current,
         dpr,
+        showGrid,
       });
       if (effectRef.current.length || movementRef.current.length)
         frame = requestAnimationFrame(draw);
     };
     frame = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(frame);
-  }, [game, size, camera, hover,view]);
+  }, [game, size, camera, hover,view,showGrid]);
   const local = (e) => {
     const r = canvasRef.current.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
@@ -253,10 +254,7 @@ export function useBattlefield(game, onCell, focusTarget) {
           (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? el.clientHeight : 1);
         queueCamera((c) => ({
           ...c,
-          zoom: Math.max(
-            0.65,
-            Math.min(2.8, c.zoom * Math.exp(-delta * 0.006)),
-          ),
+          zoom: clampZoom(c.zoom * Math.exp(-delta * 0.006)),
         }),true);
       } else if (
         e.deltaMode === 0 ||
@@ -388,6 +386,7 @@ export function useBattlefield(game, onCell, focusTarget) {
     rotate,
     tilt,
     resetCamera,
+    focusOn,
     destinations,
     pointerHandlers,
   };

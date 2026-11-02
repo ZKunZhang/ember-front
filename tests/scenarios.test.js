@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { SCENARIOS, FORMATIONS, createScenario } from '../src/game/scenarios.js';
 import { terrainCost } from '../src/game/terrain.js';
 import { DIFFICULTIES } from '../src/game/difficulty.js';
+import { UNIT_TYPES } from '../src/game/catalog.js';
 
 test('every scenario, difficulty and formation has legal deployments and connected mission targets',()=>{
   for (const meta of SCENARIOS) for (const difficulty of Object.keys(DIFFICULTIES)) for (const formation of Object.keys(FORMATIONS)) {
@@ -22,7 +23,12 @@ test('every scenario, difficulty and formation has legal deployments and connect
 
 test('maps and formations provide distinct rosters and valid overrides',()=>{
   const allTypes=new Set(['scout','tank','heavyTank','artillery','rocket','engineer']);
-  for (const formation of Object.values(FORMATIONS)) { assert.equal(formation.types.length,9); assert.deepEqual(new Set(formation.types),allTypes); }
+  for (const [id,formation] of Object.entries(FORMATIONS)) {
+    assert.equal(formation.types.length,9);
+    assert.ok(formation.types.every(type=>Object.hasOwn(UNIT_TYPES,type)));
+    assert.ok(formation.types.slice(0,6).includes('engineer'),'short escort rosters keep engineering support');
+    if(id!=='fireSupport') assert.deepEqual(new Set(formation.types),allTypes);
+  }
   assert.deepEqual(createScenario('mountain-pass').deployments.slice(0,9).map(u=>u.type),FORMATIONS.balanced.types);
   assert.notDeepEqual(createScenario('forest-corridor').terrain,createScenario('broken-basin').terrain);
   const custom=createScenario('mountain-pass','hard','artillery');

@@ -1,5 +1,6 @@
 import { createState, unitAt, moveUnit, attackUnit, repairUnit, enemyAct, beginPlayerTurn, onMap, breakthroughArrivals } from './engine.js';
 import { defenseSummary } from './defense.js';
+import { isOperationMission, getOperationStatus } from './operations.js';
 
 function addLog(s,message,kind='info') {
   s.logSequence++;
@@ -39,7 +40,18 @@ function finishPlayerTurn(s) {
 export function initialGame(id,session=1,difficulty='simple',formationId) {
   const s={...createState(id,difficulty,formationId),session,mode:'move',inspectedId:null,logs:[],logSequence:0,effectSequence:0,effect:null,movementSequence:0,movement:null,enemyIndex:0,enemyQueue:[],undoHistory:[],noticeSequence:0,notice:null};
   addLog(s,`${s.name}：${s.units.filter(u=>u.team==='blue').length} 辆车完成部署。`,'good');
-  if (s.mission?.kind==='defend') {
+  if (isOperationMission(s.mission)) {
+    const m=s.mission;
+    const message={
+      rearguard:`阻止敌军进入后方通道，坚守 ${m.turns} 个完整敌方回合后，至少 ${m.required} 辆车驶入撤离区；${m.deadline} 回合内完成。`,
+      relief:`援军接近据点后接通支援，连续驻守 ${m.turns} 个完整敌方回合，至少一辆原守军存活；限 ${m.deadline} 回合。`,
+      raid:`击毁 ${m.targetCount} 门目标炮组后，至少 ${m.required} 辆车驶入撤离区；限 ${m.deadline} 回合。`,
+      control:`同时驻守两处据点，连续坚持 ${m.turns} 个完整敌方回合；限 ${m.deadline} 回合。`,
+    }[m.kind];
+    addLog(s,message);
+    if (['rearguard','raid'].includes(m.kind)) addLog(s,'撤离开放前停在出口不计数，开放后须先离开再驶入。');
+    notify(s,`${s.name} · ${message}`,'good','deploy');
+  } else if (s.mission?.kind==='defend') {
     addLog(s,`守住 ${s.mission.points.length} 格跑道保护区，坚持 ${s.mission.turns} 个完整敌方回合；先布防，任何敌车进入保护区都会失败。`);
     notify(s,`${s.name} · 先布防，守住 ${s.mission.points.length} 格跑道，坚守 ${s.mission.turns} 个完整敌方回合`,'good','deploy');
   } else {
@@ -138,7 +150,7 @@ export function gameReducer(current,action) {
     }
     if (s.enemyIndex>=s.enemyQueue.length&&!s.winner) {
       beginPlayerTurn(s);
-      if (!(s.mission?.kind==='defend'&&s.winner)) {
+      if (!s.winner) {
         addLog(s,`第 ${s.turnNumber} 回合，所有车辆行动已恢复。`,'good');
         notify(s,`第 ${s.turnNumber} 回合 · 我方行动机会已恢复`,'good','turn');
       }
@@ -152,6 +164,22 @@ export function gameReducer(current,action) {
       notify(s,`车辆抵达撤离区 · ${breakthroughArrivals(s).length} / ${s.mission.required} 辆就位`,'good','objective');
     if(s.mission.kind==='hold'&&s.missionProgress.heldTurns>current.missionProgress.heldTurns)
       notify(s,`坚守成功 ${s.missionProgress.heldTurns} / ${s.mission.turns} 回合 · 我方行动已恢复`,'good','objective');
+  }
+  if (isOperationMission(s.mission)) {
+    const now=getOperationStatus(s),before=getOperationStatus(current);
+    let message='';
+    if (s.winner&&!current.winner) message=`任务${s.winner==='blue'?'完成':'失败'} · ${now.outcomeReason}`;
+    else if (!s.winner) {
+      if (now.phase!==before.phase) message={withdraw:'坚守完成 · 撤离已开放，请从区域外驶入出口',secure:'援军已接通 · 连续驻守据点并保护原守军',extract:'目标炮组已全部摧毁 · 撤离已开放，请从区域外驶入出口'}[now.phase]??'';
+      else if (now.held!==before.held) message=now.held<before.held?'据点失守 · 连续驻守计数已清零':`任务坚守 ${now.held} / ${now.holdRequired} 个完整敌方回合`;
+      else if (now.arrivals!==before.arrivals) message=`撤离车辆 ${now.arrivals} / ${now.required} 辆就位`;
+      else if (now.occupiedPoints!==before.occupiedPoints&&['control','relief'].includes(now.kind)) message=`据点驻守 ${now.occupiedPoints} / ${now.totalPoints}`;
+      else if (now.targetsDestroyed>before.targetsDestroyed) message=`目标炮组已摧毁 ${now.targetsDestroyed} / ${now.targetsTotal}`;
+    }
+    if (message) {
+      const kind=s.winner==='red'||now.held<before.held||now.arrivals<before.arrivals?'warn':'good';
+      addLog(s,message,kind);notify(s,message,kind,'objective');
+    }
   }
   const defense=defenseSummary(s);
   if (defense) {

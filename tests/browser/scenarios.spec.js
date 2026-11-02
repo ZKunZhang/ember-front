@@ -85,10 +85,10 @@ test('original crossing and escort stories expose their own objectives and targe
   await page.goto('/operations');
   await page.getByRole('button',{name:'穿越与护送',exact:true}).click();
   await expect(page.locator('.campaign-node')).toHaveCount(SCENARIOS.filter(s=>!s.story?.sourceUrl&&(s.mission?.kind==='breakthrough'||s.mission?.outposts)).length);
-  for(const meta of SCENARIOS.filter(s=>s.story&&!s.story.sourceUrl)){
+  for(const meta of SCENARIOS.filter(s=>s.story&&!s.story.sourceUrl&&['breakthrough','escort','defend'].includes(s.mission?.kind))){
     await page.goto(`/battle/${meta.id}`);
     const crossing=meta.mission.kind==='breakthrough';
-    await expect(page.locator('.objective-progress')).toContainText(crossing?'抵达撤离区 0 / 3':meta.mission.kind==='defend'?'机场守备 0 / 5':'护送目标：工程车');
+    await expect(page.locator('.objective-progress')).toContainText(crossing?`抵达撤离区 0 / ${meta.mission.required}`:meta.mission.kind==='defend'?'机场守备 0 / 5':'护送目标：工程车');
     await page.getByText('任务简报与战术路线',{exact:true}).click();
     const story=page.getByRole('region',{name:'剧情任务'});
     await expect(story).toContainText('原创虚构剧情');

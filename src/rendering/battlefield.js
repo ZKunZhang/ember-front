@@ -1,6 +1,6 @@
 import { rangeContours, roundedPath } from './contours.js';
 import { movementPosition, vehicleMotion } from '../game/movement.js';
-import { VEHICLE_SCALE, tableBounds } from './projection.js';
+import { VEHICLE_SCALE, VEHICLE_BASE_SCALE, tableBounds } from './projection.js';
 import { createPainter } from './primitives.js';
 import { drawVehicleBase, drawVehicleModel } from './vehicles.js';
 import { createTerrainRenderer } from './terrain.js';
@@ -76,7 +76,7 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
   const terrain=createTerrainRenderer(painter,state);
   function vehicle(u) {
     const {x,y}=u,blue=u.team==='blue',center=p(x+.5,y+.5);
-    ctx.save();ctx.translate(center.x,center.y);ctx.scale(VEHICLE_SCALE,VEHICLE_SCALE);ctx.translate(-center.x,-center.y);
+    ctx.save();ctx.translate(center.x,center.y);ctx.scale(VEHICLE_BASE_SCALE,VEHICLE_BASE_SCALE);ctx.translate(-center.x,-center.y);
     drawVehicleBase(painter,u);
     ctx.restore();
     const kick=vehicleKick(u,effects,view,now,reducedMotion);
@@ -121,11 +121,16 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
   ctx.save();
   const shake=combatMotion(effects,now,reducedMotion);ctx.translate(shake.x,shake.y);
   const {selected,moves,units,wrecks,moveContours,fireContours,repairContours,defenseContours}=getBattlefieldData(state,preview);
-  function area(contours,color,fill,dashed=false) {
-    ctx.save();ctx.lineJoin='round';ctx.lineCap='round';ctx.setLineDash(dashed?[5*scale,5*scale]:[]);
+  function area(contours,color,fill,dashed=false,emphasized=false) {
+    ctx.save();ctx.lineJoin='round';ctx.lineCap='round';
+    const dash=Math.max(5,5*scale);
+    ctx.setLineDash(dashed?[dash,dash]:[]);
     ctx.beginPath();
     for(const contour of contours)roundedPath(ctx,contour.map(([x,y])=>p(x,y,.5)),5*scale);
-    ctx.fillStyle=fill;ctx.fill('evenodd');ctx.strokeStyle=color;ctx.lineWidth=1.4*scale;ctx.stroke();ctx.restore();
+    ctx.fillStyle=fill;ctx.fill('evenodd');
+    const width=emphasized?Math.max(1.9,2.3*scale):1.4*scale;
+    if(emphasized){ctx.strokeStyle='#142d36cc';ctx.lineWidth=width+Math.max(1.2,1.4*scale);ctx.stroke();}
+    ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();ctx.restore();
   }
   function marker(x,y,color,fill) {
     const center=p(x+.5,y+.5,1),corners=hexCorners(x,y).map(([a,b])=>p(a,b));
@@ -147,8 +152,8 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
   // Draw after the cached ground so feature overlays survive every cache path.
   drawEnvironmentGround(painter,state);
   area(defenseContours,'#ffe4a1ee','#f8d27728');
-  area(moveContours,'#a8dbe6bb','#b1e9ef14');
-  area(fireContours,'#eec39eaa','#ffc69f0c',true);
+  area(moveContours,'#2468c9','#b1e9ef14',false,true);
+  area(fireContours,'#e68b36','#ffc69f0c',true,true);
   area(repairContours,'#b5e7c8bb','#b5e7c816');
   for(let y=0;y<state.rows;y++)for(let x=0;x<state.cols;x++) {
     const t=state.terrain[y][x];if(t<0)continue;

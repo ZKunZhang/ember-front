@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { drawVehicleModel } from '../src/rendering/vehicles.js';
 import { worldToGround } from '../src/rendering/projection.js';
+import { UNIT_TYPES } from '../src/game/catalog.js';
 
-const TYPES=['scout','tank','heavyTank','artillery','rocket','engineer'];
+const TYPES=Object.keys(UNIT_TYPES);
 const unitFor=(type,team='blue')=>({type,team,x:4,y:3,heading:{x:1,y:-.5}});
 
 // Keep altitude alongside ground coordinates so these checks are independent of
@@ -40,6 +41,23 @@ test('vehicle classes have distinct functional silhouettes at the same scale',()
   assert.equal(models.rocket.polygons.filter(p=>p.fill==='#536773').length,8,'launcher retains eight open square cells');
   assert.ok(models.engineer.polygons.some(p=>p.fill==='#efbf54'),'industrial equipment remains visibly yellow');
   assert.ok(extent(models.engineer,'y')>extent(models.tank,'y'),'dozer blade exceeds the tank hull width');
+});
+
+test('field guns retain distinct barrel lengths, elevations, and fighting compartments',()=>{
+  const models=Object.fromEntries(['cannon','howitzer','gunHowitzer'].map(type=>[type,record(unitFor(type))]));
+  const longestBarrel=model=>model.lines.filter(line=>line.width>=3).sort((a,b)=>
+    Math.hypot(b.b.x-b.a.x,b.b.y-b.a.y)-Math.hypot(a.b.x-a.a.x,a.b.y-a.a.y))[0];
+  const barrelLength=line=>Math.hypot(line.b.x-line.a.x,line.b.y-line.a.y);
+  const cannon=longestBarrel(models.cannon),howitzer=longestBarrel(models.howitzer),gunHowitzer=longestBarrel(models.gunHowitzer);
+  assert.ok(barrelLength(cannon)>barrelLength(gunHowitzer));
+  assert.ok(barrelLength(gunHowitzer)>barrelLength(howitzer));
+  assert.ok(cannon.b.z-cannon.a.z<2,'cannon barrel stays nearly horizontal');
+  assert.ok(howitzer.b.z-howitzer.a.z>12,'howitzer has a steep elevated barrel');
+  assert.ok(gunHowitzer.b.z-gunHowitzer.a.z>6&&gunHowitzer.b.z-gunHowitzer.a.z<10,'gun-howitzer has medium elevation');
+  assert.ok(howitzer.width>cannon.width,'short howitzer barrel remains visibly thicker');
+  for(const type of ['cannon','howitzer'])assert.ok(models[type].polygons.some(p=>p.fill==='#6b8a92'),`${type}: open fighting compartment`);
+  assert.ok(!models.gunHowitzer.polygons.some(p=>p.fill==='#6b8a92'),'gun-howitzer compartment is enclosed');
+  for(const [a,b] of [['cannon','howitzer'],['howitzer','gunHowitzer'],['cannon','gunHowitzer']])assert.notDeepEqual(models[a].polygons,models[b].polygons);
 });
 
 test('all vehicle geometry stays finite and inside its tabletop footprint for both factions',()=>{

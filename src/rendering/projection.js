@@ -2,7 +2,8 @@ import { hexCorners, hexNeighbors, roundHex } from '../game/hex.js';
 
 // Face the tabletop's near edge directly; orbiting is an explicit user action.
 export const DEFAULT_ZOOM = 1;
-export const VEHICLE_SCALE = .72;
+export const VEHICLE_SCALE = .84;
+export const VEHICLE_BASE_SCALE = .76;
 const TILE_WIDTH = 46;
 const TILE_DEPTH = 28;
 const PLANE_DEPTH = Math.sqrt(3) / 2;
@@ -66,13 +67,16 @@ export function project(view,x,y,z=0) {
   const across=u*cos-v*sin,depth=u*sin+v*cos;
   return {x:view.ox+across,y:view.oy+depth*view.th/(view.tw*PLANE_DEPTH)-z*view.scale};
 }
-export function unproject(view,px,py) {
+export function unprojectPoint(view,px,py) {
   const dx=px-view.ox,dy=py-view.oy;
   const depth=dy*view.tw*PLANE_DEPTH/view.th,across=dx;
   const angle=(view.rotation??0)+Math.atan((view.lateral??1)/(Math.sqrt(3)*(view.facing??1)))+(view.advance==='right'?Math.PI/2:0),cos=Math.cos(angle),sin=Math.sin(angle);
   const u=across*cos+depth*sin,v=-across*sin+depth*cos;
   const ground=groundToWorld({x:v/view.tw*(view.facing??1),y:u/view.tw*(view.lateral??1)});
-  const x=ground.x+view.cols/2,y=ground.y+view.rows/2;
+  return {x:ground.x+view.cols/2,y:ground.y+view.rows/2};
+}
+export function unproject(view,px,py) {
+  const {x,y}=unprojectPoint(view,px,py);
   const nearest=roundHex(x-.5,y-.5);
   // Match the painted polygon edges, including clicks very close to a corner.
   for(const cell of [nearest,...hexNeighbors(nearest)]) {

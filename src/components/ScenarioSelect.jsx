@@ -3,6 +3,7 @@ import { SCENARIOS, FORMATIONS } from '../game/scenarios.js';
 import { DEFAULT_DIFFICULTY, DIFFICULTIES, enemyCountFor } from '../game/difficulty.js';
 import ScenarioPreview from './ScenarioPreview.jsx';
 import { progressKey } from '../game/progress.js';
+import { describeHardScenario } from '../game/map-expansion.js';
 
 const POSITIONS = SCENARIOS.map((_,index)=>[14+index%4*24,8+Math.floor(index/4)*13]);
 const FILTERS = [['all','全部战区'],['standard','常规作战'],['story','战史行动'],['crossing','穿越与护送'],['terrain','地形与守备']];
@@ -47,7 +48,8 @@ export default function ScenarioSelect({ onDeploy, onResume, hasBattle, onHome, 
   const [search,setSearch]=useState('');
   const [inspected,setInspected]=useState(SCENARIOS[0].id);
   const scenarios=SCENARIOS.filter(s=>(filter==='all'||(filter==='standard'?!s.story&&!isCrossing(s):filter==='crossing'?isCrossing(s):filter==='terrain'?isTerrain(s):Boolean(s.story?.sourceUrl)))&&`${s.name} ${s.subtitle} ${s.briefing}`.toLowerCase().includes(search.trim().toLowerCase()));
-  const current=scenarios.find(s=>s.id===inspected)||scenarios[0];
+  const inspectedScenario=scenarios.find(s=>s.id===inspected)||scenarios[0];
+  const current=inspectedScenario&&describeHardScenario(inspectedScenario,difficulty);
   const completed=SCENARIOS.filter(s=>progress[progressKey(s.id,difficulty)]).length;
   const record=current&&progress[progressKey(current.id,difficulty)];
   const formationFor=s=>formation==='recommended'?s.formationId:formation;
@@ -87,7 +89,7 @@ export default function ScenarioSelect({ onDeploy, onResume, hasBattle, onHome, 
           <div className="campaign-preview"><ScenarioPreview id={current.id} difficulty={difficulty} formationId={formationFor(current)}/><span>地形侦察 / TERRAIN RECON</span></div>
           <div className="eyebrow">{current.subtitle}</div><h2>{current.name}</h2><p className="campaign-description">{current.briefing}</p>
           <p className="campaign-objective"><span>行动目标</span>{current.objective}</p>
-          <p className="campaign-direction">{current.direction}{isCrossing(current)&&' · 山林遮蔽 · 沿途遭遇'}</p>
+          <p className="campaign-direction">{current.direction}{isCrossing(current)&&' · 山林遮蔽 · 沿途遭遇'}{difficulty==='hard'&&' · 扩大战区：可用面积 ×4'}</p>
           {record&&<p className="campaign-record">✓ 本难度已通关 <span>最佳 {record.rounds} 回合 · 存活 {record.survivors} / {current.allyCount}</span></p>}
           <div className="campaign-forces"><span>我方 <b>{String(current.allyCount).padStart(2,'0')}</b></span><span>敌方 <b>{String(enemyCountFor(current.enemyCount,difficulty)).padStart(2,'0')}</b></span><span>{FORMATIONS[formationFor(current)].name}</span></div>
           <button className="primary" onClick={()=>onDeploy(current.id,difficulty,formationFor(current))}>进入{current.name} <span>↗</span></button>

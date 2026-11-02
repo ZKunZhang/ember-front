@@ -1,3 +1,5 @@
+import { OPERATION_SCENARIOS, buildOperationScenario } from './operation-scenarios.js';
+import { ADVANCE_SCENARIO, buildAdvanceScenario } from './advance-scenario.js';
 import { BLUE_FORMATION, UNIT_TYPES } from './catalog.js';
 import { DEFAULT_DIFFICULTY, enemyCountFor, getDifficulty } from './difficulty.js';
 import { hexDistance, hexNeighbors } from './hex.js';
@@ -8,6 +10,7 @@ export const FORMATIONS = {
   mobile: { name: '机动编组', description: '侦察与坦克比例更高，快速抢占路线。', types: ['scout','scout','tank','tank','engineer','artillery','scout','rocket','heavyTank'] },
   armored: { name: '装甲编组', description: '重型单位顶住正面压力，维修车提供续航。', types: ['heavyTank','tank','heavyTank','tank','engineer','scout','tank','artillery','rocket'] },
   artillery: { name: '炮击编组', description: '远程火力密集，依靠侦察车校射。', types: ['scout','artillery','rocket','artillery','engineer','scout','rocket','tank','heavyTank'] },
+  fireSupport: { name: '火力协同编组', description: '侦察开路，加农炮直射、榴弹炮曲射、加榴炮支援，工程车随队保障。', types: ['scout','tank','heavyTank','cannon','howitzer','engineer','gunHowitzer','tank','scout'] },
 };
 
 const crossing = required => ({ kind: 'breakthrough', required, points: [
@@ -100,8 +103,10 @@ export const SCENARIOS = [
     briefing: '敌军正从远侧道路向机场推进。守住跑道全部六个保护格，任何敌车进入保护区都会使任务失败；坚持五个敌方回合等待接应。', objective: '保护机场跑道，坚持5个敌方回合', routes: ['机场前沿：装甲阻挡进攻，工程车维修', '林带侧路：侦察预警，火炮支援两翼'],
     story: { chapter: '原创行动 · 机场防线', intro: '前线机场的最后一批运输机尚未起飞，地勤正在抢修跑道。你的混编分队已在机库附近展开，敌军装甲正从远侧道路逼近。保护跑道，为撤离争取五个回合。', success: '运输队完成撤离，守军保住了机场通道。', failure: '机场保护区被突破，运输行动被迫中断。' },
     mission: { kind: 'defend', point: {x:15,y:8,label:'前线机场'}, points: Array.from({length:6},(_,i)=>({x:15,y:6+i,label:`跑道保护区 ${i+1}`})), turns:5 } },
+  ADVANCE_SCENARIO,
+  ...OPERATION_SCENARIOS,
 ].map(meta=>({ ...meta, allyCount:meta.allyCount??9, approach:meta.approach??'southwest',
-  advance:meta.advance??'up', direction:meta.advance==='right'?'左侧部署 → 向右推进':'左下出发 → 上方推进',
+  advance:meta.advance??'up', direction:meta.operation?meta.direction:meta.advance==='right'?'左侧部署 → 向右推进':'左下出发 → 上方推进',
 }));
 const BLUE = [[17,3],[18,3],[19,3],[17,4],[18,4],[19,4],[17,5],[18,5],[19,5]];
 const RED_SOUTH = [[7,14],[8,14],[9,14],[7,15],[8,15],[9,15],[7,16],[8,16],[9,16],[6,14],[6,15],[6,16],[5,14],[5,15],[5,16],[6,13],[7,13],[8,13]];
@@ -117,6 +122,8 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
   const formation = FORMATIONS[formationId] || FORMATIONS[meta.formationId] || FORMATIONS.balanced;
   const difficulty = getDifficulty(difficultyId);
   const enemyCount = enemyCountFor(meta.enemyCount, difficulty.id);
+  if (meta.id === ADVANCE_SCENARIO.id) return buildAdvanceScenario(meta, { formation, formationId: Object.entries(FORMATIONS).find(([,f])=>f===formation)?.[0] ?? meta.formationId, difficulty, enemyCount });
+  if (meta.operation) return buildOperationScenario(meta, { formation, formationId: Object.entries(FORMATIONS).find(([,f])=>f===formation)?.[0] ?? meta.formationId, difficulty, enemyCount });
   const cols = 22, rows = 18;
   const terrain = Array.from({ length: rows }, (_, y) => Array.from({ length: cols }, (_, x) =>
     x < 1 || y < 1 || x > 20 || y > 16 || x + y < 5 || x + y > 33 ? -1 : 0));
@@ -333,7 +340,7 @@ export function createScenario(id = SCENARIOS[0].id, difficultyId = DEFAULT_DIFF
   }
   const deployments = [...blue,...red.map(([x,y],i)=>({team:'red',type:(outposts ? PATROL_TYPES : RED_TYPES)[i],x,y,...(outposts?{patrolGroup:i%3}: {})}))];
   if (!varied) for (const {x,y} of deployments) put(x,y,0);
-  const mission=meta.mission?{...meta.mission,...(meta.mission.points?{points:meta.mission.points.map(transform)}:{}),...(meta.mission.point?{point:transform(meta.mission.point)}:{})}:undefined;
+  const mission=meta.mission?{...meta.mission,...(meta.mission.points?{points:meta.mission.points.map(transform)}:{}),...(meta.mission.point?{point:transform(meta.mission.point)}:{}),...(meta.mission.exits?{exits:meta.mission.exits.map(transform)}:{})}:undefined;
   const oriented=Array.from({length:rows},(_,y)=>Array.from({length:cols},(_,x)=>terrain[flipY?rows-1-y:y][flipX?cols-1-x:x]));
   features=features.map(feature=>({...transform(feature),...(feature.runway?{runway:{from:transform(feature.runway.from),to:transform(feature.runway.to)}}:{}),...(feature.hangars?{hangars:feature.hangars.map(transform)}:{})}));
   return layoutScenario({ ...meta, mission, features, formationId: Object.entries(FORMATIONS).find(([,f])=>f===formation)?.[0] ?? meta.formationId, formationName: formation.name, difficultyId: difficulty.id, difficulty: difficulty.label, enemyCount, cols, rows, terrain:oriented, deployments:deployments.map(unit=>({...transform(unit),heading:{x:(unit.team==='blue'?-1:1)*(flipX?-1:1),y:0}})), landmarks:landmarks.map(transform) });

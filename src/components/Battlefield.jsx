@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useBattlefield } from '../hooks/useBattlefield.js';
+import TacticalMap from './TacticalMap.jsx';
 import FogLayer from './FogLayer.jsx';
 import BattleResult from './BattleResult.jsx';
 import { terrainCost,terrainLabel } from '../game/terrain.js';
@@ -6,6 +8,7 @@ import { routeCost } from '../game/engine.js';
 import { hexToSource } from '../game/layout.js';
 
 export default function Battlefield({ game, onCell, onReset, onUndo, onExit, onNext, nextScenario, focusTarget }) {
+  const [showGrid,setShowGrid]=useState(false);
   const {
     canvasRef,
     view,
@@ -18,8 +21,9 @@ export default function Battlefield({ game, onCell, onReset, onUndo, onExit, onN
     rotate,
     tilt,
     resetCamera,
+    focusOn,
     destinations,
-  } = useBattlefield(game, onCell, focusTarget);
+  } = useBattlefield(game, onCell, focusTarget,showGrid);
   const living=game.units.filter(unit=>unit.team==='blue'&&unit.hp>0);
   const lastMove=living.filter(unit=>!unit.moved).length===1;
   const remainingFire=living.filter(unit=>!unit.fired).length;
@@ -49,6 +53,7 @@ export default function Battlefield({ game, onCell, onReset, onUndo, onExit, onN
           data-camera-tilt={camera.tilt}
           data-camera-zoom={camera.zoom}
           data-camera-detail={view.interactive?'interactive':'full'}
+          data-grid-visible={showGrid}
           data-camera-pan-x={camera.pan.x}
           data-camera-pan-y={camera.pan.y}
           style={{
@@ -68,6 +73,7 @@ export default function Battlefield({ game, onCell, onReset, onUndo, onExit, onN
             <button onClick={resetCamera} aria-label="复位沙盘视角" title="复位视角">⌂</button>
           </div>
           <label>俯视角度<input aria-label="沙盘俯视角度" type="range" min=".65" max="1.35" step=".05" value={camera.tilt} onChange={e=>tilt(Number(e.target.value))}/></label>
+          <button className="grid-toggle" aria-pressed={showGrid} onClick={()=>setShowGrid(value=>!value)}>⬡ {showGrid?'隐藏六角网格':'显示六角网格'}</button>
           <p>拖动平移 · 右键拖动旋转<br/>上下拖动调角度 · 双指缩放旋转</p>
         </details>
         <div className="north">
@@ -75,6 +81,7 @@ export default function Battlefield({ game, onCell, onReset, onUndo, onExit, onN
         </div>
         {game.winner && <BattleResult game={game} nextScenario={nextScenario} onNext={onNext} onReset={onReset} onExit={onExit} onUndo={onUndo}/>}
       </div>
+      <TacticalMap game={game} view={view} onLocate={focusOn}/>
       <div className="map-toolbar">
         <button
           id="undo"

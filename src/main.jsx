@@ -5,5 +5,6 @@ import './styles.css';
 import './styles/battle.css';
 import './styles/feedback.css';
 import './styles/defense.css';
+import './styles/atlas.css';
 
 createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);

@@ -2,8 +2,8 @@ import { hexCorners, hexNeighbors, roundHex } from '../game/hex.js';
 
 // Face the tabletop's near edge directly; orbiting is an explicit user action.
 export const DEFAULT_ZOOM = 1;
-export const VEHICLE_SCALE = .84;
-export const VEHICLE_BASE_SCALE = .76;
+export const VEHICLE_SCALE = .64;
+export const VEHICLE_BASE_SCALE = .58;
 const TILE_WIDTH = 46;
 const TILE_DEPTH = 28;
 const PLANE_DEPTH = Math.sqrt(3) / 2;

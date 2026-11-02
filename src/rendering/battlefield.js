@@ -6,8 +6,8 @@ import { drawVehicleBase, drawVehicleModel } from './vehicles.js';
 import { createTerrainRenderer } from './terrain.js';
 import { drawEnvironmentGround, getEnvironmentItems, drawEnvironmentItem } from './environment.js';
 import { combatMotion, vehicleKick, drawCombat } from './combat.js';
-import { reachable, inFireRange, distance, onMap } from '../game/engine.js';
-import { hexCorners, roundHex } from '../game/hex.js';
+import { reachable, inFireRange, distance, onMap, routeCost } from '../game/engine.js';
+import { HEX_DIRECTIONS, hexCorners, roundHex } from '../game/hex.js';
 
 const dataCache = new WeakMap();
 export function getBattlefieldData(state,preview=false) {
@@ -71,7 +71,7 @@ function drawTerrainGround(ctx,view,state) {
   }
 }
 
-export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=performance.now(),reducedMotion=false,preview=false,cache=null,dpr=1,movements=[]}={}) {
+export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=performance.now(),reducedMotion=false,preview=false,cache=null,dpr=1,movements=[],showGrid=false}={}) {
   const painter=createPainter(ctx,view),{p,polygon,tile,line,scale}=painter;
   const terrain=createTerrainRenderer(painter,state);
   function vehicle(u) {
@@ -93,26 +93,43 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
     drawVehicleModel(painter,u,motion);
     ctx.restore();
     if(preview)return;
-    const hp=p(x+.5,y+.5,38*VEHICLE_SCALE),w=25*scale;
+    // Overview number plates would overlap neighboring hexes on small screens.
+    if(scale<.55&&u.id!==state.selectedId){
+      const hp=p(x+.5,y+.5,30*VEHICLE_SCALE),width=Math.max(3,16*scale);
+      ctx.save();ctx.fillStyle='#18313ee8';ctx.fillRect(hp.x-width/2-1,hp.y-1,width+2,3);
+      ctx.fillStyle=blue?'#8bd4ee':'#f39b82';ctx.fillRect(hp.x-width/2,hp.y,width*u.hp/u.maxHp,1);
+      ctx.restore();return;
+    }
+    const labelScale=scale*.8;
+    const hp=p(x+.5,y+.5,38*VEHICLE_SCALE),w=25*labelScale;
     ctx.save();
-    const glow=ctx.createRadialGradient(hp.x,hp.y-7*scale,0,hp.x,hp.y-7*scale,22*scale);
-    glow.addColorStop(0,blue?'#168fffbb':'#ff302dbb');glow.addColorStop(1,blue?'#168fff00':'#ff302d00');
-    ctx.fillStyle=glow;ctx.fillRect(hp.x-24*scale,hp.y-24*scale,48*scale,36*scale);
-    ctx.font=`900 ${Math.max(10,13*scale)}px system-ui`;ctx.textAlign='center';
+    const active=u.id===state.selectedId&&blue;
+    ctx.fillStyle=active?'#19313bf2':blue?'#183947df':'#59342bdf';
+    ctx.fillRect(hp.x-w/2-3*labelScale,hp.y-17*labelScale,w+6*labelScale,23*labelScale);
+    ctx.strokeStyle=active?'#f3d494':'#e4e4c94d';ctx.lineWidth=Math.max(.6,scale);
+    ctx.strokeRect(hp.x-w/2-3*labelScale,hp.y-17*labelScale,w+6*labelScale,23*labelScale);
+    ctx.font=`900 ${Math.max(9,13*labelScale)}px system-ui`;ctx.textAlign='center';
     ctx.lineJoin='round';ctx.strokeStyle='#251e26';ctx.lineWidth=3*scale;
-    ctx.strokeText(String(u.hp),hp.x,hp.y-3*scale);ctx.fillStyle='#fff8e7';ctx.fillText(String(u.hp),hp.x,hp.y-3*scale);
-    ctx.fillStyle='#332b26';ctx.fillRect(hp.x-w/2-1,hp.y,w+2,4*scale);
-    ctx.fillStyle=blue?'#69d6ff':'#ff876b';ctx.fillRect(hp.x-w/2,hp.y+scale,w*u.hp/u.maxHp,2*scale);
-    ctx.font=`700 ${Math.max(8,8*scale)}px system-ui`;
-    ctx.strokeText(blue?String(u.id).padStart(2,'0'):'敌',center.x,center.y+15*scale);
-    ctx.fillText(blue?String(u.id).padStart(2,'0'):'敌',center.x,center.y+15*scale);
-    if(u.moved&&u.fired&&blue){ctx.fillStyle='#fff1b0';ctx.fillText('✓',hp.x+19*scale,hp.y+3*scale);}
+    ctx.strokeText(String(u.hp),hp.x,hp.y-3*labelScale);ctx.fillStyle='#fff8e7';ctx.fillText(String(u.hp),hp.x,hp.y-3*labelScale);
+    ctx.fillStyle='#332b26';ctx.fillRect(hp.x-w/2-1,hp.y,w+2,4*labelScale);
+    ctx.fillStyle=blue?'#69d6ff':'#ff876b';ctx.fillRect(hp.x-w/2,hp.y+labelScale,w*u.hp/u.maxHp,2*labelScale);
+    ctx.font=`700 ${Math.max(8,8*labelScale)}px system-ui`;
+    ctx.strokeText(blue?String(u.id).padStart(2,'0'):'敌',center.x,center.y+15*labelScale);
+    ctx.fillText(blue?String(u.id).padStart(2,'0'):'敌',center.x,center.y+15*labelScale);
+    if(blue&&!state.winner){
+      for(const [i,available] of [!u.moved,!u.fired].entries()){
+        ctx.beginPath();ctx.arc(hp.x+(i?4:-4)*labelScale,hp.y+9*labelScale,2*labelScale,0,Math.PI*2);
+        ctx.fillStyle=available&&state.turn==='blue'?(i?'#efc77d':'#8bd4ee'):'#263e47';ctx.fill();
+        ctx.strokeStyle='#e9e2c18c';ctx.lineWidth=.6*scale;ctx.stroke();
+      }
+    }
+    if(u.moved&&u.fired&&blue){ctx.fillStyle='#fff1b0';ctx.fillText('✓',hp.x+19*labelScale,hp.y+3*labelScale);}
     ctx.restore();
   }
   ctx.clearRect(0,0,view.width,view.height);
   if(!preview){
     const sky=ctx.createLinearGradient(0,0,view.width,view.height);
-    sky.addColorStop(0,'#35494b');sky.addColorStop(.48,'#465b4b');sky.addColorStop(1,'#23363d');
+    sky.addColorStop(0,'#d9c79e');sky.addColorStop(.48,'#e5d6b5');sky.addColorStop(1,'#beab83');
     ctx.fillStyle=sky;ctx.fillRect(0,0,view.width,view.height);
     const haze=ctx.createRadialGradient(view.width*.28,view.height*.18,0,view.width*.28,view.height*.18,view.width*.7);
     haze.addColorStop(0,'#e4edc426');haze.addColorStop(1,'#a0927700');
@@ -151,6 +168,20 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
   }else drawTerrainGround(ctx,view,state);
   // Draw after the cached ground so feature overlays survive every cache path.
   drawEnvironmentGround(painter,state);
+  if(showGrid&&!preview){
+    ctx.save();ctx.beginPath();
+    for(let y=0;y<state.rows;y++)for(let x=0;x<state.cols;x++){
+      if(!onMap(state,x,y))continue;
+      const corners=hexCorners(x,y).map(([a,b])=>p(a,b,.35));
+      // Each internal edge is drawn once, including irregular map borders.
+      for(let i=0;i<6;i++){
+        const [dx,dy]=HEX_DIRECTIONS[i];
+        if(i>=3&&onMap(state,x+dx,y+dy))continue;
+        ctx.moveTo(corners[i].x,corners[i].y);ctx.lineTo(corners[(i+1)%6].x,corners[(i+1)%6].y);
+      }
+    }
+    ctx.strokeStyle='#253f4670';ctx.lineWidth=Math.max(.65,.8*scale);ctx.stroke();ctx.restore();
+  }
   area(defenseContours,'#ffe4a1ee','#f8d27728');
   area(moveContours,'#2468c9','#b1e9ef14',false,true);
   area(fireContours,'#e68b36','#ffc69f0c',true,true);
@@ -182,7 +213,23 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
   if(route&&selected){
     ctx.save();ctx.lineCap='round';ctx.lineJoin='miter';ctx.beginPath();
     [selected,...route].forEach((cell,i)=>{const point=p(cell.x+.5,cell.y+.5,2);if(i)ctx.lineTo(point.x,point.y);else ctx.moveTo(point.x,point.y);});
-    ctx.strokeStyle='#c6d2a9c9';ctx.lineWidth=1.5*scale;ctx.stroke();ctx.restore();
+    ctx.strokeStyle='#193d55dd';ctx.lineWidth=Math.max(3,4*scale);ctx.stroke();
+    ctx.strokeStyle='#f8e5b7';ctx.lineWidth=Math.max(1.5,2*scale);ctx.stroke();
+    for(const cell of route){
+      const point=p(cell.x+.5,cell.y+.5,2);
+      ctx.beginPath();ctx.arc(point.x,point.y,Math.max(1.6,2.5*scale),0,Math.PI*2);
+      ctx.fillStyle='#fff2cb';ctx.fill();
+    }
+    const end=route.at(-1);
+    if(end){
+      const point=p(end.x+.5,end.y+.5,15),label=`${routeCost(state,route)} / ${selected.move} 移动点`;
+      ctx.font=`600 ${Math.max(10,11*scale)}px system-ui`;ctx.textAlign='center';
+      const width=ctx.measureText(label).width+16;
+      ctx.fillStyle='#173744f2';ctx.fillRect(point.x-width/2,point.y-13,width,22);
+      ctx.strokeStyle='#e7c98c';ctx.lineWidth=1;ctx.strokeRect(point.x-width/2,point.y-13,width,22);
+      ctx.fillStyle='#ffe7ae';ctx.fillText(label,point.x,point.y+2);
+    }
+    ctx.restore();
   }
   const movingIds=new Set(),drawItems=[];
   for(const movement of movements){
@@ -234,7 +281,7 @@ export function drawBattlefield(ctx,view,state,{hover=null,effects=[],now=perfor
   if(!preview){
     ctx.save();
     const vignette=ctx.createRadialGradient(view.width*.48,view.height*.48,Math.min(view.width,view.height)*.22,view.width*.5,view.height*.5,Math.max(view.width,view.height)*.68);
-    vignette.addColorStop(0,'#10171e00');vignette.addColorStop(1,'#0b1b285e');
+    vignette.addColorStop(0,'#43392200');vignette.addColorStop(1,'#5e4e2624');
     ctx.fillStyle=vignette;ctx.fillRect(0,0,view.width,view.height);
     ctx.restore();
   }

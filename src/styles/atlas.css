@@ -1,0 +1,133 @@
+/* Civilization-inspired map frame: quiet parchment, navy instruments, gold edges. */
+.game-shell { --hud: #172d38f5; --hud-border: #b79d674f; --text: #f0ead8; --muted: #b2bdb8; background: #d6c39d; }
+.battle-screen::before { background: linear-gradient(180deg,#142c39f5, #142c39e8 76px, transparent 155px), linear-gradient(0deg,#182e39b8,transparent 135px); }
+.game-shell > header { left: auto; right: 22px; top: 18px; width: 96px; z-index: 8; }
+.game-shell #battle-settings { left: auto; right: 0; border-color: #d0b77b88; background: #183341; color: #ead9ae; box-shadow: inset 0 0 0 3px #d0b77b12,0 3px 12px #10273240; }
+.game-shell .header-actions .sound-toggle { left: auto; right: 52px; width: 38px; height: 38px; top: 2px; border-radius: 50%; border: 1px solid #bda77366; background: #183341; color: #d1c6a8; }
+.battle-screen .mission-overview { top: 16px; left: 24px; transform: none; display: grid; grid-template-columns: minmax(220px,1fr) 310px; gap: 10px 28px; width: min(860px,calc(100% - 175px)); max-width: none; min-width: 0; max-height: none; padding: 0; text-align: left; text-shadow: none; }
+.battle-screen .mission-overview .mission-head { text-align: left; align-self: center; }
+.battle-screen .mission-overview .mission-head h1 { font-size: 24px; font-weight: 600; letter-spacing: 3px; color: #f7e7bb; }
+.battle-screen .mission-overview .mission-head h1 span { display: inline-block; font-size: 10px; letter-spacing: 0; color: #bdc5bd; margin-left: 14px; }
+.mission-overview .mission-head .eyebrow { color: #bca775; font-size: 8px; letter-spacing: 1.7px; }
+.battle-screen .mission-overview .battle-status { grid-column: 2; grid-row: 1; align-self: center; row-gap: 4px; padding-left: 18px; border-left: 1px solid #d0b77b42; }
+.battle-screen .mission-overview .battle-status > div:not(.phase-readiness) { text-align: left; padding: 0 8px; }
+.battle-screen .mission-overview .battle-status strong { font-size: 20px; }
+.battle-screen .mission-overview .battle-status small { font-size: 9px; }
+.battle-screen .mission-overview .battle-status .phase-readiness { justify-content: flex-start; padding-left: 8px; gap: 16px; }
+.mission-overview .turn-phase { text-align: left; padding-left: 8px; color: #e4c88e; font-size: 10px; }
+.battle-screen .mission-overview .objective-hud { grid-column: 1/-1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; padding: 8px 12px; border: 1px solid #bca77540; border-left: 3px solid #d9bd7a; border-radius: 3px; background: #18333eea; color: #ebe5d2; text-shadow: none; }
+.mission-overview .objective-text { font-size: 11px; margin: 0; }
+.mission-overview .objective-progress { font-size: 10px; margin: 0; color: #dfc88f; }
+.mission-overview .mission-intel { margin-left: auto; }
+.mission-overview .mission-intel summary { font-size: 10px; white-space: nowrap; color: #c1c9be; }
+.mission-overview .mission-intel[open] { position: static; width: auto; padding: 0; max-height: none; overflow: visible; background: none; border: 0; box-shadow: none; text-shadow: none; }
+.mission-overview:has(.mission-intel[open]) { z-index: 6; }
+.mission-overview .mission-intel-content { position: absolute; top: 100%; left: 0; width: min(440px,100%); padding: 15px; max-height: min(50dvh,400px); overflow-y: auto; background: #18333ef5; border: 1px solid #bca77566; box-shadow: 0 10px 24px #11283140; text-align: left; }
+.mission-intel-content > p { margin: 0 0 12px; color: var(--muted); font-size: 11px; line-height: 1.8; }
+.mission-overview .mission-intel[open] summary { text-align: left; }
+.battle-screen .command-hud { top: 96px; bottom: auto; right: 24px; width: 248px; max-height: calc(100dvh - 240px); border: 1px solid #bda77370; border-top: 2px solid #cdb47a; border-radius: 5px; background: #17323ef2; box-shadow: 0 8px 25px #1a2c3530; text-shadow: none; }
+.command-hud::before { display: none; }
+.battle-screen .command-panels { max-height: calc(100dvh - 246px); padding: 0; }
+.command-hud .unit-name { font-size: 18px; color: #f4e6c1; }
+.command-hud .section-title { color: #cbb782; font-size: 10px; letter-spacing: 1px; }
+.command-hud .unit-art { filter: drop-shadow(0 4px 3px #0004); }
+.command-hud .unit-readiness { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 8px; }
+.command-hud .defense-unit-role { font-size: 10px; line-height: 1.7; color: #b4c4be; }
+.command-hud .unit-roster, .command-hud .log-panel { border-top: 1px solid #bda77333; padding: 12px 14px; }
+.command-hud .unit-roster-list { max-height: 180px; overflow-y: auto; }
+.game-shell .unit-roster-list button { width: 100%; }
+.battle-screen .sandtable-controls { top: 148px; left: 24px; }
+.sandtable-controls summary { border-color: #c2ae7b80; background: #193540ed; color: #e5d5af; }
+.sandtable-controls[open] { background: #193540f5; border-color: #c2ae7b80; }
+.game-shell .grid-toggle { width: 100%; margin-top: 10px; padding: 7px; font-size: 10px; border-color: #c2ae7b55; background: #c2ae7b0d; color: #eadbb7; }
+.game-shell .grid-toggle[aria-pressed=true] { background: #c2ae7b35; border-color: #dfc284; }
+.tactical-map { position: absolute; z-index: 3; left: 24px; bottom: calc(151px + env(safe-area-inset-bottom)); width: 224px; border: 1px solid #bda77388; border-radius: 5px; background: #18333ef2; color: #e4d5af; box-shadow: 0 5px 22px #182e3930; }
+.tactical-map summary { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; font-size: 11px; letter-spacing: 1px; cursor: pointer; list-style: none; }
+.tactical-map summary::-webkit-details-marker { display: none; }
+.tactical-map summary::after { content: '+'; font-size: 15px; color: #bfa874; }
+.tactical-map[open] summary::after { content: '−'; }
+.tactical-map-content { padding: 0 7px 7px; }
+.tactical-map canvas { display: block; width: 100%; height: auto; border: 1px solid #bda77333; cursor: crosshair; touch-action: manipulation; }
+.game-shell .tactical-map button { display: block; width: 100%; padding: 7px; font-size: 10px; margin-top: 6px; color: #cdd9cc; border-color: #bda77333; background: transparent; }
+.battle-screen .coordinates, .battle-screen .terrain-status { width: max-content; max-width: calc(100vw - 300px); padding: 5px 8px; border-radius: 3px; color: #efe6cb; background: #193540e8; text-shadow: none; }
+.battle-screen .map-command-hint { color: #ede4cf; background: #193540e8; padding: 7px 12px; border-radius: 3px; font-size: 10px; text-shadow: none; }
+.battle-screen .legend { color: #eee5ce; }
+.game-shell .end-turn-button { left: auto; right: 24px; }
+.battle-screen .unit-actions { right: 128px; }
+@media (min-width: 761px) {
+  .defense-battle .canvas-wrap { inset: 0; width: 100%; height: 100%; border-radius: 0; }
+}
+.defense-battle .tactical-map { left: 290px; width: 200px; bottom: 150px; }
+.defense-battle .command-hud { top: 96px; bottom: auto; }
+.defense-battle .sandtable-controls { top: 108px; left: 24px; }
+.defense-battle .defense-objective { background: #18333ef2; border-color: #bda77366; }
+@media (min-width: 761px) and (max-width: 1100px) {
+  .battle-screen .mission-overview { grid-template-columns: minmax(190px,1fr) 260px; gap: 10px; }
+  .battle-screen .mission-overview .mission-head h1 { font-size: 20px; }
+  .battle-screen .mission-overview .mission-head h1 span { display: block; margin-left: 0; }
+  .battle-screen .command-hud { right: 12px; width: 220px; }
+  .defense-battle .tactical-map { left: 250px; width: 180px; }
+}
+@media (max-width: 760px) {
+  .game-shell > header { top: max(12px,env(safe-area-inset-top)); right: 12px; width: 80px; }
+  .game-shell #battle-settings { width: 36px; height: 36px; font-size: 21px; }
+  .game-shell .header-actions .sound-toggle { right: 44px; width: 32px; height: 32px; }
+  .battle-screen .mission-overview { top: max(12px,env(safe-area-inset-top)); left: 12px; width: calc(100% - 112px); display: flex; gap: 7px; }
+  .battle-screen .mission-overview .mission-head h1 { font-size: 17px; letter-spacing: 1px; }
+  .battle-screen .mission-overview .mission-head h1 span { display: block; margin-left: 0; font-size: 9px; }
+  .mission-overview .mission-head .eyebrow { display: none; }
+  .battle-screen .mission-overview .battle-status { order: 1; align-self: flex-start; width: calc(100vw - 24px); border: 0; padding: 7px 0; border-top: 1px solid #c2ae7b33; }
+  .battle-screen .mission-overview .battle-status strong { font-size: 16px; }
+  .battle-screen .mission-overview .battle-status small { font-size: 8px; }
+  .battle-screen .mission-overview .battle-status .phase-readiness { justify-content: flex-start; gap: 16px; margin-top: 4px; }
+  .mission-overview .turn-phase { width: auto; flex: 1; align-self: center; white-space: nowrap; font-size: 9px; }
+  .battle-screen .mission-overview .objective-hud { order: 2; width: calc(100vw - 24px); gap: 4px; padding: 7px 9px; }
+  .mission-overview .objective-text { font-size: 10px; }
+  .mission-overview .objective-progress { font-size: 9px; }
+  .mission-overview .mission-intel-content { width: calc(100vw - 24px); }
+  .battle-screen .sandtable-controls { top: calc(221px + env(safe-area-inset-top)); left: 12px; }
+  .battle-screen .command-hud { top: auto; bottom: calc(151px + env(safe-area-inset-bottom)); left: auto; right: 12px; width: min(250px,calc(100% - 24px)); max-height: 45dvh; }
+  .battle-screen .command-panels { max-height: calc(45dvh - 46px); }
+  .command-toggle { padding: 10px; font-size: 10px; border: 0; }
+  .command-toggle > span:last-child { font-size: 9px; }
+  .command-hud .unit-header { gap: 6px; }
+  .command-hud .unit-name { font-size: 16px; }
+  .tactical-map { left: 12px; bottom: calc(151px + env(safe-area-inset-bottom)); width: 110px; }
+  .tactical-map[open] { bottom: calc(196px + env(safe-area-inset-bottom)); width: 190px; z-index: 5; }
+  .tactical-map summary { font-size: 10px; padding: 10px; }
+  .battle-screen .map-command-hint { padding: 6px 9px; font-size: 9px; bottom: calc(91px + env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); }
+  .battle-screen .map-top { bottom: calc(135px + env(safe-area-inset-bottom)); left: 12px; }
+  .battle-screen .coordinates { max-width: calc(100vw - 24px); font-size: 9px; }
+  .battle-screen .terrain-status { display: none; }
+  .game-shell .end-turn-button { left: auto; right: 12px; }
+  .battle-screen .unit-actions { right: 86px; }
+  .defense-battle .tactical-map { left: 12px; bottom: calc(196px + env(safe-area-inset-bottom)); width: 110px; }
+  .defense-battle .tactical-map[open] { width: 190px; }
+  .defense-battle .command-hud { left: 12px; right: 12px; width: auto; bottom: calc(105px + env(safe-area-inset-bottom)); }
+  .defense-battle .defense-overview .battle-status { width: calc(100vw - 24px); align-self: flex-start; }
+  .defense-battle .sandtable-controls { top: 10px; }
+}
+@media (max-height: 600px) and (min-width: 761px) {
+  .tactical-map { bottom: 128px; width: 180px; }
+  .battle-screen .command-hud { top: 96px; max-height: calc(100dvh - 220px); }
+  .battle-screen .command-panels { max-height: calc(100dvh - 226px); }
+}
+@media (max-width: 760px) and (max-height: 480px) and (orientation: landscape) {
+  .battle-screen .mission-overview { top: 8px; width: calc(100% - 115px); display: grid; grid-template-columns: 180px 1fr; gap: 4px 10px; }
+  .battle-screen .mission-overview .mission-head h1 { font-size: 15px; }
+  .battle-screen .mission-overview .battle-status { grid-column: 2; grid-row: 1; width: auto; padding: 0; border: 0; }
+  .battle-screen .mission-overview .battle-status > .phase-readiness, .mission-overview .turn-phase { display: none; }
+  .battle-screen .mission-overview .objective-hud { width: 100%; padding: 4px 8px; }
+  .battle-screen .command-hud { right: 12px; width: 180px; bottom: 98px; max-height: calc(100dvh - 200px); }
+  .battle-screen .command-panels { max-height: calc(100dvh - 244px); }
+  .battle-screen .sandtable-controls { top: 104px; }
+  .tactical-map { bottom: 100px; }
+  .tactical-map[open] { bottom: 100px; width: 180px; }
+  .defense-battle .defense-overview { width: calc(100% - 115px); }
+  .defense-battle .defense-objective { top: 96px; bottom: 95px; left: 12px; right: auto; width: 156px; }
+  .defense-battle .command-hud { top: 96px; bottom: 95px; left: auto; right: 12px; width: 132px; max-height: none; }
+  .defense-battle .command-panels { max-height: calc(100dvh - 258px); }
+  .defense-battle .tactical-map { left: 184px; bottom: 100px; width: 100px; }
+  .defense-battle .tactical-map[open] { width: 160px; }
+  .defense-battle .sandtable-controls { top: 4px; left: 4px; }
+}

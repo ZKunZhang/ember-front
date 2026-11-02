@@ -1,17 +1,17 @@
 import {test,expect} from '@playwright/test';
 
-test('corner commands, centered progress and settings manage the battle',async({page})=>{
+test('corner commands, top progress and settings manage the battle',async({page})=>{
   await page.goto('/battle/twin-bridges?difficulty=simple&formation=armored');
   await expect(page.locator('.map-controls')).toHaveCount(0);
   const stats=await page.locator('.battle-status').boundingBox();
   const info=await page.locator('.command-hud').boundingBox();
   const undo=await page.locator('#undo').boundingBox();
   const end=await page.locator('#end-turn').boundingBox();
-  expect(Math.abs(stats.x+stats.width/2-720)).toBeLessThan(2);
-  expect(stats.y).toBeLessThan(250);
-  expect(info.x).toBeGreaterThan(1100);expect(info.y).toBeLessThan(40);
+  expect(stats.x).toBeGreaterThan(500);
+  expect(stats.y).toBeLessThan(40);
+  expect(info.x).toBeGreaterThan(1100);expect(info.y).toBe(96);
   expect(undo.x).toBeLessThan(40);expect(undo.y).toBeGreaterThan(900);
-  expect(end.x).toBeGreaterThan(undo.x+undo.width);expect(end.x).toBeLessThan(220);expect(end.y).toBeGreaterThan(900);
+  expect(end.x).toBeGreaterThan(1300);expect(end.y).toBeGreaterThan(900);
   expect(undo.width).toBe(undo.height);expect(end.width).toBe(end.height);
   await expect(page.locator('#undo')).toBeDisabled();
   await page.locator('#battle-settings').click();
@@ -47,7 +47,7 @@ test('unit actions stay at bottom right and expose engineer repair and attack mo
   await selectMapUnit(page,5);
   const actions=page.getByRole('region',{name:'选中单位操作'});
   const bounds=await actions.boundingBox();
-  expect(bounds.x).toBeGreaterThan(1100);expect(bounds.y).toBeGreaterThan(900);
+  expect(bounds.x).toBeGreaterThan(1000);expect(bounds.x+bounds.width).toBeLessThan(1320);expect(bounds.y).toBeGreaterThan(900);
   await expect(page.locator('.command-panels #repair-mode')).toHaveCount(0);
   await page.locator('#repair-mode').click();
   await expect(page.locator('#repair-mode')).toHaveAttribute('aria-pressed','true');

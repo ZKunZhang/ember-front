@@ -42,15 +42,15 @@ test('moving vehicles animate, settle, and can be resumed after leaving the batt
   await expect(page.locator('#move-mode')).toContainText('移动');
 });
 
-test('navigation, title and selected-unit information occupy the requested corners',async({page})=>{
+test('settings, mission title and selected unit follow the atlas layout',async({page})=>{
   await page.goto('/battle/mountain-pass');
   const exit=await page.locator('#battle-settings').boundingBox();
   const title=await page.locator('.mission-head').boundingBox();
   const info=await page.locator('.command-hud').boundingBox();
-  expect(exit.x).toBeLessThan(50);expect(exit.y).toBeLessThan(50);
-  expect(Math.abs(title.x+title.width/2-720)).toBeLessThan(5);
+  expect(exit.x).toBeGreaterThan(1360);expect(exit.y).toBeLessThan(50);
+  expect(title.x).toBeLessThan(40);
   expect(title.y).toBeLessThan(50);
-  expect(info.x).toBeGreaterThan(1000);expect(info.y).toBeLessThan(120);
+  expect(info.x).toBeGreaterThan(1100);expect(info.y).toBe(96);
 });
 
 test('cached terrain keeps the reference appearance while panning',async({page})=>{

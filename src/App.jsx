@@ -26,6 +26,7 @@ export default function App() {
   const {game,dispatch}=useGame(active,route);
   const [defenseGuideOpen,setDefenseGuideOpen]=useState(()=>route?.scenarioId==='airfield-defense');
   const [focusTarget,setFocusTarget]=useState(null);
+  const [mobilePanel,setMobilePanel]=useState(null);
   const lastAction=game.undoHistory?.at(-1);
   useEffect(()=>{
     if(game.mission?.kind==='defend'&&game.notice?.cue==='deploy')setDefenseGuideOpen(true);
@@ -110,15 +111,17 @@ export default function App() {
         {game.mission&&<p className="objective-progress" aria-live="polite">{game.winner==='blue'?'任务已完成':game.winner==='red'?'任务失败':game.mission.kind==='breakthrough'?`抵达撤离区 ${breakthroughArrivals(game).length} / ${game.mission.required} 辆 · 无需全歼敌军`:game.mission.kind==='defend'?`机场守备 ${game.missionProgress?.defendedTurns||0} / ${game.mission.turns} 回合 · 阻止敌军进入跑道`:game.mission.kind==='hold'?`坚守进度 ${game.missionProgress?.heldTurns||0} / ${game.mission.turns} 回合`:game.mission.kind==='capture'?`占领进度 ${game.missionProgress?.captured?.filter(Boolean).length||0} / ${game.mission.points.length}`:`护送目标：工程车 ${String(escort?.id).padStart(2,'0')} · 生命 ${escort?.hp ?? 0} / ${escort?.maxHp ?? 0} · 抵达金色目标格`}</p>}
         <details className="mission-intel">
           <summary>任务简报与战术路线</summary>
+          <div className="mission-intel-content">
           <p>{game.briefing}</p>
           {game.story&&<StoryBrief game={game}/>}
           <div className="route-brief">{game.routes.map(r=><p key={r}>{r}</p>)}</div>
+          </div>
         </details>
       </section>
       </section>}
-      <Battlefield game={game} focusTarget={focusTarget} onCell={(x,y)=>dispatch({type:'CELL',x,y})} onReset={()=>dispatch({type:'RESET'})} onUndo={()=>dispatch({type:'UNDO'})} onExit={()=>{setHasBattle(false);navigate(null,'home');}} nextScenario={nextScenario} onNext={()=>nextScenario&&deploy(nextScenario.id,game.difficultyId,nextScenario.formationId)}/>
+      <Battlefield game={game} focusTarget={focusTarget} mobilePanel={mobilePanel} onMobilePanelChange={setMobilePanel} onCell={(x,y)=>dispatch({type:'CELL',x,y})} onReset={()=>dispatch({type:'RESET'})} onUndo={()=>dispatch({type:'UNDO'})} onExit={()=>{setHasBattle(false);navigate(null,'home');}} nextScenario={nextScenario} onNext={()=>nextScenario&&deploy(nextScenario.id,game.difficultyId,nextScenario.formationId)}/>
       <BattleFeedback game={game} active={active}/>
-      <CommandPanel game={game} onSelect={id=>dispatch({type:'SELECT',id})} onLocate={locate}/>
+      <CommandPanel game={game} mobilePanel={mobilePanel} onMobilePanelChange={setMobilePanel} onSelect={id=>dispatch({type:'SELECT',id})} onLocate={locate}/>
       <UnitActions game={game} dispatch={dispatch}/>
       <button className="round-command end-turn-button" id="end-turn" disabled={locked} onClick={()=>dispatch({type:'END_TURN'})} aria-label="结束回合"><span aria-hidden="true">→</span><small>{game.winner?'已结束':locked?'敌方行动':'结束回合'}</small></button>
     </main>}

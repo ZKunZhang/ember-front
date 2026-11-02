@@ -25,7 +25,7 @@ function surfaceMaterials(facets,forest) {
       const tone=(hidden?29:36)+light*8+grain;
       if(forest)return `hsl(140 ${hidden?31:40}% ${tone}%)`;
       const brightness=(hidden?.75:.94)+light*.2+grain*.012;
-      const rgb=[166-moss*34,185-moss*13,181-moss*45].map(value=>Math.round(value*brightness));
+      const rgb=[185-moss*34,181-moss*13,154-moss*35].map(value=>Math.round(value*brightness));
       return `rgb(${rgb.join(' ')})`;
     };
     return {points,x,y,visible:color(false),hidden:color(true)};
@@ -206,7 +206,7 @@ export function createTerrainRenderer(painter, state) {
 
   function ground(x, y, hidden) {
     const type = terrainAt(x, y), variation = (x * 13 + y * 7) % 4;
-    const grass = hidden ? ['#5c8861', '#5d8962', '#5b8760', '#5c8861'] : ['#90b76b', '#91b86c', '#8fb66a', '#90b76b'];
+    const grass = hidden ? ['#658568', '#69886a', '#648269', '#6b896a'] : ['#94b968', '#a0bf73', '#8fb36c', '#9aba70'];
     const corners=hexCorners(x,y),top=corners.map(([a,b])=>p(a,b));
     const center=p(x+.5,y+.5);
     // Only exposed terrain edges have thickness; internal faces caused brown seams.

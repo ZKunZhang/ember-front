@@ -7,7 +7,7 @@ import { terrainCost,terrainLabel } from '../game/terrain.js';
 import { routeCost } from '../game/engine.js';
 import { hexToSource } from '../game/layout.js';
 
-export default function Battlefield({ game, onCell, onReset, onUndo, onExit, onNext, nextScenario, focusTarget }) {
+export default function Battlefield({ game, onCell, onReset, onUndo, onExit, onNext, nextScenario, focusTarget, mobilePanel, onMobilePanelChange }) {
   const [showGrid,setShowGrid]=useState(false);
   const {
     canvasRef,
@@ -81,7 +81,7 @@ export default function Battlefield({ game, onCell, onReset, onUndo, onExit, onN
         </div>
         {game.winner && <BattleResult game={game} nextScenario={nextScenario} onNext={onNext} onReset={onReset} onExit={onExit} onUndo={onUndo}/>}
       </div>
-      <TacticalMap game={game} view={view} onLocate={focusOn}/>
+      <TacticalMap game={game} view={view} onLocate={focusOn} mobilePanel={mobilePanel} onMobilePanelChange={onMobilePanelChange}/>
       <div className="map-toolbar">
         <button
           id="undo"

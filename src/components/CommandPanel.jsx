@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import UnitIcon from './UnitIcon.jsx';
 import { terrainLabel,terrainCost } from '../game/terrain.js';
 
@@ -51,8 +51,9 @@ function UnitDetails({ unit, hostile = false }) {
   );
 }
 
-export default function CommandPanel({ game, onSelect, onLocate }) {
+export default function CommandPanel({ game, onSelect, onLocate, mobilePanel, onMobilePanelChange }) {
   const [expanded, setExpanded] = useState(false);
+  useEffect(()=>{if(mobilePanel==='map')setExpanded(false);},[mobilePanel]);
   const selected = game.units.find(
     (unit) => unit.id === game.selectedId && unit.hp > 0,
   );
@@ -64,7 +65,6 @@ export default function CommandPanel({ game, onSelect, onLocate }) {
       !game.fog[unit.y][unit.x],
   );
   const inspected = enemy || selected;
-  const defending=game.mission?.kind==='defend';
   const locked=game.turn!=='blue'||Boolean(game.winner);
   const living=game.units.filter(unit=>unit.team==='blue'&&unit.hp>0);
   const roleHints={scout:'绕到林缘观察，让后方火炮获得共享视野。',tank:'守住进场路，掩护侦察车和火炮。',heavyTank:'适合守住入口，留意敌军绕行路线。',artillery:'保持在后方，利用共享视野越过山林射击。',rocket:'保持远距离支援，近处敌车处于射击盲区。',engineer:'随队维修相邻友军，维修会占用开火机会。',cannon:'沿开阔道路建立直射炮线，山林会挡住火力。',howitzer:'依靠侦察越岭曲射，保持至少 3 格距离。',gunHowitzer:'保持至少 2 格距离，以重火力越岭支援前队。'};
@@ -78,7 +78,10 @@ export default function CommandPanel({ game, onSelect, onLocate }) {
         className="command-toggle"
         aria-expanded={expanded}
         aria-controls="command-panels"
-        onClick={() => setExpanded((value) => !value)}
+        onClick={() => {
+          setExpanded(value=>!value);
+          if(!expanded&&window.matchMedia('(max-width: 760px)').matches)onMobilePanelChange?.('units');
+        }}
       >
         <span>
           战场指挥 ·{' '}
